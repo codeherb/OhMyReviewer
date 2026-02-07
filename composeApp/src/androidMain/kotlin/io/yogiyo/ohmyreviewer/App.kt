@@ -14,15 +14,18 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import io.yogiyo.ohmyreviewer.domain.repository.MLRepository
 import org.jetbrains.compose.resources.painterResource
 
 import ohmyreviewer.composeapp.generated.resources.Res
 import ohmyreviewer.composeapp.generated.resources.compose_multiplatform
+import org.koin.compose.koinInject
 
 @Composable
 @Preview
 fun App() {
     MaterialTheme {
+        val aiRepository = koinInject<MLRepository>()
         var showContent by remember { mutableStateOf(false) }
         Column(
             modifier = Modifier

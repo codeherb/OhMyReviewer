@@ -19,6 +19,11 @@ kotlin {
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
+            implementation(libs.google.mlkit.imageLabeling)
+            implementation(libs.google.mlkit.imageDescription)
+            implementation(libs.google.mlkit.prompt)
+            implementation(libs.koin.android)
+            implementation(libs.koin.compose)
         }
         commonMain.dependencies {
             implementation(compose.runtime)

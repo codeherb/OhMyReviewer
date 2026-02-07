@@ -2,6 +2,7 @@ import SwiftUI
 import Shared
 
 struct ContentView: View {
+    private let aiRepository = KoinHelper().aiRepository
     @State private var showContent = false
     var body: some View {
         VStack {
