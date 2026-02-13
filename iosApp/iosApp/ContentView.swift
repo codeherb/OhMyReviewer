@@ -241,7 +241,18 @@ struct ContentView: View {
                 }
 
                 // 이미지 분석
-                let keywords = await ImageAnalyzer.shared.analyzeImage(image)
+                let labels = await ImageAnalyzer.shared.analyzeImage(image)
+                let texts = await ImageAnalyzer.shared.recognizeText(image)
+                let keywords: [String]
+                #if canImport(FoundationModels)
+                if #available(iOS 26, *) {
+                    keywords = await ImageAnalyzer.shared.enrichKeywords(labels: labels, texts: texts)
+                } else {
+                    keywords = labels + texts
+                }
+                #else
+                keywords = labels + texts
+                #endif
 
                 await MainActor.run {
                     extractedKeywords = keywords

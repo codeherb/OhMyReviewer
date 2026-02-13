@@ -55,8 +55,9 @@ class ReviewService {
 
             let keywordText = keywords.joined(separator: ", ")
             let prompt = """
-            다음 키워드를 참고하여 자연스러운 한국어 리뷰를 작성해주세요.
-            리뷰는 2-3문장으로 작성하고, 친근하고 솔직한 느낌으로 작성해주세요.
+            다음 키워드를 참고하여 배달 음식 리뷰를 작성해주세요.
+            리뷰는 2-3문장으로 작성하고, 실제 배달앱 리뷰처럼 친근하고 솔직한 느낌으로 작성해주세요.
+            음식 맛, 양, 포장 상태, 배달 속도 등 배달 음식 리뷰에 적합한 내용을 포함해주세요.
             
             키워드: \(keywordText)
             
@@ -77,51 +78,52 @@ class ReviewService {
     /// 템플릿 기반 리뷰 생성 (Fallback)
     private func generateWithTemplate(keywords: [String]) -> String {
         guard !keywords.isEmpty else {
-            return "좋은 경험이었습니다. 다음에 또 방문하고 싶어요!"
+            return "맛있게 잘 먹었습니다. 다음에 또 시켜먹을게요!"
         }
 
-        // 키워드 카테고리 분류
-        let positiveWords = ["맛있다", "좋다", "훌륭하다", "추천", "최고", "만족", "친절", "깔끔"]
-        let foodWords = ["음식", "맛", "식사", "요리", "메뉴"]
-        let serviceWords = ["서비스", "직원", "친절", "응대"]
-        let atmosphereWords = ["분위기", "인테리어", "깨끗", "청결"]
+        // 배달 음식 리뷰 키워드 카테고리
+        let tasteWords = ["맛", "맛있", "달콤", "매콤", "짭짤", "고소", "담백", "신선", "바삭"]
+        let quantityWords = ["양", "푸짐", "넉넉", "가성비", "가격"]
+        let packagingWords = ["포장", "용기", "깔끔", "깨끗", "정성"]
+        let deliveryWords = ["배달", "빠른", "따뜻", "뜨거운", "식지"]
 
         var reviewParts: [String] = []
 
-        // 음식 관련 키워드가 있으면
+        // 맛 관련
         if keywords.contains(where: { keyword in
-            foodWords.contains(where: { keyword.contains($0) })
+            tasteWords.contains(where: { keyword.contains($0) })
         }) {
-            reviewParts.append("음식이 정말 맛있었어요.")
+            reviewParts.append("음식 맛이 정말 좋았어요.")
         }
 
-        // 서비스 관련 키워드가 있으면
+        // 양/가성비 관련
         if keywords.contains(where: { keyword in
-            serviceWords.contains(where: { keyword.contains($0) })
+            quantityWords.contains(where: { keyword.contains($0) })
         }) {
-            reviewParts.append("직원분들도 친절하셨습니다.")
+            reviewParts.append("양도 푸짐해서 가성비 좋습니다.")
         }
         
-        // 분위기 관련 키워드가 있으면
+        // 포장 상태 관련
         if keywords.contains(where: { keyword in
-            atmosphereWords.contains(where: { keyword.contains($0) })
+            packagingWords.contains(where: { keyword.contains($0) })
         }) {
-            reviewParts.append("분위기도 좋았어요.")
+            reviewParts.append("포장도 깔끔하게 잘 해주셨어요.")
         }
         
-        // 긍정적 키워드가 있으면
+        // 배달 관련
         if keywords.contains(where: { keyword in
-            positiveWords.contains(where: { keyword.contains($0) })
+            deliveryWords.contains(where: { keyword.contains($0) })
         }) {
-            reviewParts.append("다음에 또 방문하고 싶습니다!")
+            reviewParts.append("배달도 빠르고 음식이 따뜻하게 왔어요.")
         }
         
         // 기본 리뷰 생성
         if reviewParts.isEmpty {
             let keywordText = keywords.prefix(3).joined(separator: ", ")
-            return "\(keywordText) - 전반적으로 좋은 경험이었습니다. 추천드려요!"
+            return "\(keywordText) - 맛있게 잘 먹었습니다. 또 주문할게요!"
         }
         
+        reviewParts.append("다음에도 또 주문하겠습니다!")
         return reviewParts.joined(separator: " ")
     }
 }
