@@ -9,6 +9,8 @@ interface MLDatasource {
 
     fun initialize(): Deferred<ModelStatus>
 
+    fun initializeImageDescription(): Deferred<ModelStatus>
+
     fun generateContent(prompt: String): Flow<String>
 
     fun generateImageDescription(image: PlatformImage): Flow<String>

@@ -28,5 +28,5 @@ val androidModule = module {
 
     // ViewModels
     viewModel { ImageViewModel(androidContext(), get()) }
-    viewModel { ReviewViewModel(androidContext()) }
+    viewModel { ReviewViewModel(androidContext(), get()) }
 }

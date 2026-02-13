@@ -10,6 +10,10 @@ class MLDatasourceImpl() : MLDatasource {
         TODO("Not yet implemented")
     }
 
+    override fun initializeImageDescription(): Deferred<Unit> {
+        TODO("Not yet implemented")
+    }
+
     override fun generateContent(prompt: String): Flow<String> {
         TODO("Not yet implemented")
     }
