@@ -27,6 +27,9 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.koin.core)
         }
+        androidMain.dependencies {
+            implementation(libs.google.mlkit.imageLabeling)
+        }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
