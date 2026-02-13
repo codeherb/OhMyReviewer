@@ -63,15 +63,12 @@ class ImageViewModel(
             try {
                 val result = withContext(Dispatchers.IO) {
                     val byteArray = bitmapToByteArray(currentBitmap)
-                    Log.d(TAG, "분석 시작 - byteArray size: ${byteArray.size}, bitmap: ${currentBitmap.width}x${currentBitmap.height}")
                     imageAnalyzer.analyzeImage(
                         imageBytes = byteArray,
                         width = currentBitmap.width,
                         height = currentBitmap.height,
                     )
                 }
-
-                Log.d(TAG, "분석 완료 - 결과 ${result.size}개")
 
                 if (result.isEmpty()) {
                     updateState {

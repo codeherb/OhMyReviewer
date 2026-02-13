@@ -43,7 +43,6 @@ class ReviewViewModel(
             updateState { copy(isInitializingModel = true) }
             try {
                 val status = mlDatasource.initializeImageDescription().await()
-                Log.d(TAG, "이미지 설명 모델 초기화 완료: $status")
                 updateState { copy(modelStatus = status, isInitializingModel = false) }
             } catch (e: Exception) {
                 Log.e(TAG, "이미지 설명 모델 초기화 실패", e)
@@ -108,7 +107,6 @@ class ReviewViewModel(
                         sendEffect(ReviewContract.Effect.ShowError("이미지 설명 생성 실패: ${e.message}"))
                     }
                     .collect { description ->
-                        Log.d(TAG, "이미지 설명 결과: $description")
                         updateState { copy(description = description, isDescribing = false) }
                         reviewTextFieldState.edit {
                             replace(0, length, description)

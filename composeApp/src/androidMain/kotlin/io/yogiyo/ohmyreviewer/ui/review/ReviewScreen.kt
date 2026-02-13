@@ -22,15 +22,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -241,29 +240,26 @@ private fun ActionButtonsSection(
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        OutlinedButton(
+        TextButton(
             onClick = onPickImageClick,
             enabled = !isDescribing,
         ) {
-            Text(text = if (hasSelectedImage) "다른 이미지 선택" else "갤러리에서 선택")
+            Text(text = if (hasSelectedImage) "다른 이미지" else "이미지 선택")
         }
 
         if (hasSelectedImage) {
-            Button(
+            TextButton(
                 onClick = onDescribeClick,
                 enabled = !isDescribing && isModelReady,
             ) {
                 if (isDescribing) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(14.dp),
                         strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary,
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("설명 생성 중...")
-                } else {
-                    Text("이미지 설명하기")
+                    Spacer(modifier = Modifier.width(4.dp))
                 }
+                Text(text = if (isDescribing) "생성 중..." else "설명하기")
             }
         }
     }

@@ -55,14 +55,9 @@ class MLDatasourceImpl(
             FeatureStatus.DOWNLOADABLE -> {
                 generativeModel?.download()?.collect { downloadStatus ->
                     when (downloadStatus) {
-                        is DownloadStatus.DownloadStarted ->
-                            Log.d(TAG, "starting download for Gemini Nano")
-
-                        is DownloadStatus.DownloadProgress ->
-                            Log.d(TAG, "Nano ${downloadStatus.totalBytesDownloaded} bytes downloaded")
-
                         DownloadStatus.DownloadCompleted -> emit(ModelStatus.READY)
                         is DownloadStatus.DownloadFailed -> emit(ModelStatus.UNAVAILABLE)
+                        else -> { /* DownloadStarted, DownloadProgress */ }
                     }
                 } ?: emit(ModelStatus.UNAVAILABLE)
             }
@@ -74,18 +69,15 @@ class MLDatasourceImpl(
 
         return try {
             val featureStatus = client.checkFeatureStatus().await()
-            Log.d(TAG, "ImageDescription featureStatus: $featureStatus")
 
             when (featureStatus) {
                 FeatureStatus.UNAVAILABLE -> ModelStatus.UNAVAILABLE
                 FeatureStatus.AVAILABLE -> ModelStatus.READY
                 FeatureStatus.DOWNLOADABLE, FeatureStatus.DOWNLOADING -> {
-                    Log.d(TAG, "ImageDescription waiting for download (status: $featureStatus)")
                     _downloadProgress.value = 0f
                     suspendCancellableCoroutine { continuation ->
                         client.downloadFeature(object : DownloadCallback {
                             override fun onDownloadStarted(bytesToDownload: Long) {
-                                Log.d(TAG, "ImageDescription download started: $bytesToDownload bytes")
                                 totalBytesToDownload = bytesToDownload
                                 _downloadProgress.value = 0.01f
                             }
@@ -99,14 +91,12 @@ class MLDatasourceImpl(
                             }
 
                             override fun onDownloadProgress(totalBytesDownloaded: Long) {
-                                Log.d(TAG, "ImageDescription download progress: $totalBytesDownloaded bytes")
                                 if (totalBytesToDownload > 0) {
                                     _downloadProgress.value = (totalBytesDownloaded.toFloat() / totalBytesToDownload).coerceIn(0.01f, 0.99f)
                                 }
                             }
 
                             override fun onDownloadCompleted() {
-                                Log.d(TAG, "ImageDescription download completed")
                                 _downloadProgress.value = 1f
                                 if (continuation.isActive) {
                                     continuation.resume(ModelStatus.READY)
@@ -148,7 +138,6 @@ class MLDatasourceImpl(
             }
 
             val result = prepareImageDescription()
-            Log.d(TAG, "initializeImageDescription result: $result")
             return@async if (result == ModelStatus.READY) ModelStatus.SUCCESS else ModelStatus.UNAVAILABLE
         }
     }
