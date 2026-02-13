@@ -1,12 +1,13 @@
 package io.yogiyo.ohmyreviewer.data.datasource
 
+import io.yogiyo.ohmyreviewer.data.model.ModelStatus
 import io.yogiyo.ohmyreviewer.data.model.PlatformImage
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.flow.Flow
 
 class MLDatasourceImpl() : MLDatasource {
 
-    override fun initialize(): Deferred<Unit> {
+    override fun initialize(): Deferred<ModelStatus> {
         TODO("Not yet implemented")
     }
 
