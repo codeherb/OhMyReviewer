@@ -14,7 +14,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -27,8 +30,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.yogiyo.ohmyreviewer.ui.image.components.AnalysisResultCard
+import io.yogiyo.ohmyreviewer.ui.image.components.ErrorMessageCard
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -60,6 +66,9 @@ fun ImageScreen(
                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
             )
         },
+        onAnalyzeClick = {
+            viewModel.onEvent(ImageContract.Event.OnAnalyzeClick)
+        },
     )
 }
 
@@ -67,17 +76,20 @@ fun ImageScreen(
 private fun ImageContent(
     state: ImageContract.State,
     onPickImageClick: () -> Unit,
+    onAnalyzeClick: () -> Unit,
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        // 이미지 프리뷰
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(1f)
+                .aspectRatio(4f / 3f)
                 .clip(RoundedCornerShape(16.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center,
@@ -106,10 +118,66 @@ private fun ImageContent(
             }
         }
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 이미지 선택 버튼
+        Button(
+            onClick = onPickImageClick,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+        ) {
+            Text(
+                text = if (!state.hasSelectedImage) "갤러리에서 이미지 선택" else "다른 이미지 선택",
+                modifier = Modifier.padding(vertical = 4.dp),
+            )
+        }
+
+        // 분석 버튼 (이미지가 선택된 경우에만 표시)
+        if (state.hasSelectedImage) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = onAnalyzeClick,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                enabled = !state.isAnalyzing,
+            ) {
+                if (state.isAnalyzing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp,
+                    )
+                } else {
+                    Text(
+                        text = "이미지 분석하기",
+                        modifier = Modifier.padding(vertical = 4.dp),
+                    )
+                }
+            }
+        }
+
         Spacer(modifier = Modifier.height(24.dp))
 
-        Button(onClick = onPickImageClick) {
-            Text(text = "갤러리에서 선택")
+        // 에러 메시지
+        state.errorMessage?.let { error ->
+            ErrorMessageCard(message = error)
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        // 분석 결과
+        if (state.hasAnalysisResult) {
+            AnalysisResultCard(labels = state.analysisResult)
+        }
+
+        // 분석 안내 메시지
+        if (state.shouldShowAnalysisGuide) {
+            Text(
+                text = "이미지를 분석하려면 '이미지 분석하기' 버튼을 눌러주세요",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
         }
     }
 }

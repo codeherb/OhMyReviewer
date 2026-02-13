@@ -1,6 +1,7 @@
 package io.yogiyo.ohmyreviewer.di
 
 import android.util.Log
+import io.yogiyo.ohmyreviewer.ImageAnalyzer
 import io.yogiyo.ohmyreviewer.data.datasource.MLDatasourceImpl
 import io.yogiyo.ohmyreviewer.data.datasource.MLDatasource
 import io.yogiyo.ohmyreviewer.ui.image.ImageViewModel
@@ -16,6 +17,7 @@ import org.koin.dsl.module
 
 val androidModule = module {
     single<MLDatasource> { MLDatasourceImpl(androidContext(), get()) }
+    single { ImageAnalyzer() }
 
     factory {
         val errorHandler = CoroutineExceptionHandler { _, throwable ->
@@ -25,6 +27,6 @@ val androidModule = module {
     }
 
     // ViewModels
-    viewModel { ImageViewModel(androidContext()) }
+    viewModel { ImageViewModel(androidContext(), get()) }
     viewModelOf(::ReviewViewModel)
 }
