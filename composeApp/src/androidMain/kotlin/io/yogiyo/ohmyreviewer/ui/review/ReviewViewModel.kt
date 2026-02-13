@@ -28,6 +28,7 @@ class ReviewViewModel(
 
     init {
         initializeModel()
+        collectDownloadProgress()
     }
 
     override fun handleEvent(event: ReviewContract.Event) {
@@ -47,6 +48,14 @@ class ReviewViewModel(
             } catch (e: Exception) {
                 Log.e(TAG, "이미지 설명 모델 초기화 실패", e)
                 updateState { copy(modelStatus = ModelStatus.UNAVAILABLE, isInitializingModel = false) }
+            }
+        }
+    }
+
+    private fun collectDownloadProgress() {
+        viewModelScope.launch {
+            mlDatasource.downloadProgress.collect { progress ->
+                updateState { copy(downloadProgress = progress) }
             }
         }
     }

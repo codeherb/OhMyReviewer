@@ -17,10 +17,12 @@ object ReviewContract {
         val description: String = "",
         val modelStatus: ModelStatus = ModelStatus.UNAVAILABLE,
         val isInitializingModel: Boolean = false,
+        val downloadProgress: Float = 0f,
     ) : UiState {
         val hasSelectedImage: Boolean get() = selectedBitmap != null
         val hasDescription: Boolean get() = description.isNotEmpty()
         val isModelReady: Boolean get() = modelStatus == ModelStatus.SUCCESS
+        val isDownloading: Boolean get() = downloadProgress in 0.01f..0.99f
         val shouldShowDescriptionGuide: Boolean
             get() = hasSelectedImage && !isDescribing && !hasDescription
     }

@@ -26,6 +26,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -186,11 +187,29 @@ private fun ReviewContent(
 private fun ModelStatusSection(state: ReviewContract.State) {
     when {
         state.isInitializingModel -> {
-            Text(
-                text = "AI 모델 준비 중...",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary,
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = if (state.isDownloading) {
+                        "AI 모델 다운로드 중... ${(state.downloadProgress * 100).toInt()}%"
+                    } else {
+                        "AI 모델 준비 중..."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                if (state.isDownloading) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    LinearProgressIndicator(
+                        progress = { state.downloadProgress },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 32.dp),
+                    )
+                }
+            }
         }
 
         state.isModelReady -> {

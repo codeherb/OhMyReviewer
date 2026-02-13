@@ -21,6 +21,9 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.last
@@ -35,6 +38,10 @@ class MLDatasourceImpl(
     private var imageDescriber: ImageDescriber? = null
 
     private var generativeModel: GenerativeModel? = null
+
+    private var totalBytesToDownload: Long = 0L
+    private val _downloadProgress = MutableStateFlow(0f)
+    override val downloadProgress: StateFlow<Float> = _downloadProgress.asStateFlow()
 
     private fun prepareGenerativeModel(): Flow<ModelStatus> = flow {
         val status = generativeModel?.checkStatus() ?: return@flow
@@ -74,14 +81,18 @@ class MLDatasourceImpl(
                 FeatureStatus.AVAILABLE -> ModelStatus.READY
                 FeatureStatus.DOWNLOADABLE, FeatureStatus.DOWNLOADING -> {
                     Log.d(TAG, "ImageDescription waiting for download (status: $featureStatus)")
+                    _downloadProgress.value = 0f
                     suspendCancellableCoroutine { continuation ->
                         client.downloadFeature(object : DownloadCallback {
                             override fun onDownloadStarted(bytesToDownload: Long) {
                                 Log.d(TAG, "ImageDescription download started: $bytesToDownload bytes")
+                                totalBytesToDownload = bytesToDownload
+                                _downloadProgress.value = 0.01f
                             }
 
                             override fun onDownloadFailed(e: GenAiException) {
                                 Log.e(TAG, "ImageDescription download failed", e)
+                                _downloadProgress.value = 0f
                                 if (continuation.isActive) {
                                     continuation.resume(ModelStatus.UNAVAILABLE)
                                 }
@@ -89,10 +100,14 @@ class MLDatasourceImpl(
 
                             override fun onDownloadProgress(totalBytesDownloaded: Long) {
                                 Log.d(TAG, "ImageDescription download progress: $totalBytesDownloaded bytes")
+                                if (totalBytesToDownload > 0) {
+                                    _downloadProgress.value = (totalBytesDownloaded.toFloat() / totalBytesToDownload).coerceIn(0.01f, 0.99f)
+                                }
                             }
 
                             override fun onDownloadCompleted() {
                                 Log.d(TAG, "ImageDescription download completed")
+                                _downloadProgress.value = 1f
                                 if (continuation.isActive) {
                                     continuation.resume(ModelStatus.READY)
                                 }
