@@ -18,12 +18,15 @@ kotlin {
     sourceSets {
         androidMain.dependencies {
             implementation(compose.preview)
+            implementation(compose.materialIconsExtended)
             implementation(libs.androidx.activity.compose)
             implementation(libs.google.mlkit.imageLabeling)
             implementation(libs.google.mlkit.imageDescription)
             implementation(libs.google.mlkit.prompt)
             implementation(libs.koin.android)
             implementation(libs.koin.compose)
+            implementation(libs.koin.compose.viewmodel)
+            implementation(libs.androidx.navigation.compose)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
