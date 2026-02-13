@@ -10,6 +10,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import org.koin.android.ext.koin.androidContext
+import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
@@ -24,6 +25,6 @@ val androidModule = module {
     }
 
     // ViewModels
-    viewModelOf(::ImageViewModel)
+    viewModel { ImageViewModel(androidContext()) }
     viewModelOf(::ReviewViewModel)
 }
