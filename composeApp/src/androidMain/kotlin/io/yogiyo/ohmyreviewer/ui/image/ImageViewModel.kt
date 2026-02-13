@@ -2,7 +2,6 @@ package io.yogiyo.ohmyreviewer.ui.image
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.viewModelScope
@@ -11,6 +10,7 @@ import io.yogiyo.ohmyreviewer.ui.base.MviViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import io.yogiyo.ohmyreviewer.util.decodeBitmapWithOrientation
 import java.io.ByteArrayOutputStream
 
 class ImageViewModel(
@@ -42,9 +42,7 @@ class ImageViewModel(
         viewModelScope.launch {
             try {
                 val bitmap = withContext(Dispatchers.IO) {
-                    appContext.contentResolver.openInputStream(uri)?.use { stream ->
-                        BitmapFactory.decodeStream(stream)
-                    }
+                    appContext.decodeBitmapWithOrientation(uri)
                 }
                 updateState { copy(isLoading = false, selectedBitmap = bitmap) }
             } catch (e: Exception) {

@@ -2,7 +2,6 @@ package io.yogiyo.ohmyreviewer.ui.review
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
 import androidx.compose.foundation.text.input.TextFieldState
@@ -16,6 +15,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import io.yogiyo.ohmyreviewer.util.decodeBitmapWithOrientation
 
 class ReviewViewModel(
     private val appContext: Context,
@@ -73,9 +73,7 @@ class ReviewViewModel(
         viewModelScope.launch {
             try {
                 val bitmap = withContext(Dispatchers.IO) {
-                    appContext.contentResolver.openInputStream(uri)?.use { stream ->
-                        BitmapFactory.decodeStream(stream)
-                    }
+                    appContext.decodeBitmapWithOrientation(uri)
                 }
                 updateState { copy(isLoading = false, selectedBitmap = bitmap) }
             } catch (e: Exception) {
