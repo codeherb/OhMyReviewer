@@ -225,24 +225,34 @@ struct ContentView: View {
 
     /// 이미지 로드 및 분석
     private func loadAndAnalyzeImage(from item: PhotosPickerItem?) async {
-        guard let item = item else { return }
+        print("### [ContentView] loadAndAnalyzeImage 시작")
+        guard let item = item else { 
+            print("### [ContentView] item이 nil - 종료")
+            return 
+        }
+        print("### [ContentView] item 있음 - 분석 시작")
 
         isAnalyzing = true
         extractedKeywords = []
         generatedReview = ""
 
         do {
+            print("### [ContentView] 이미지 데이터 로드 시도...")
             // 이미지 로드
             if let data = try await item.loadTransferable(type: Data.self),
                let image = UIImage(data: data) {
+                print("### [ContentView] 이미지 로드 성공! 크기: \(image.size)")
 
                 await MainActor.run {
                     selectedImage = image
                 }
 
                 // 이미지 분석
+                print("### [ContentView] ImageAnalyzer.analyzeImage 호출 전")
                 let labels = await ImageAnalyzer.shared.analyzeImage(image)
+                print("### [ContentView] analyzeImage 완료 - labels: \(labels)")
                 let texts = await ImageAnalyzer.shared.recognizeText(image)
+                print("### [ContentView] recognizeText 완료 - texts: \(texts)")
                 let keywords: [String]
                 #if canImport(FoundationModels)
                 if #available(iOS 26, *) {

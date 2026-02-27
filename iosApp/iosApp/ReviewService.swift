@@ -52,19 +52,32 @@ class ReviewService {
 #if canImport(FoundationModels)
         do {
             let session = LanguageModelSession()
+            
+            // 첫 번째 키워드를 음식명으로 사용
+            let foodName = keywords.first ?? "음식"
+            let otherKeywords = keywords.dropFirst().joined(separator: ", ")
 
-            let keywordText = keywords.joined(separator: ", ")
             let prompt = """
-            다음 키워드를 참고하여 배달 음식 리뷰를 작성해주세요.
-            리뷰는 2-3문장으로 작성하고, 실제 배달앱 리뷰처럼 친근하고 솔직한 느낌으로 작성해주세요.
-            음식 맛, 양, 포장 상태, 배달 속도 등 배달 음식 리뷰에 적합한 내용을 포함해주세요.
+            배달 음식 리뷰를 작성해주세요.
             
-            키워드: \(keywordText)
+            주문한 음식: \(foodName)
+            특징 키워드: \(otherKeywords)
             
-            리뷰:
+            작성 규칙:
+            1. 반드시 "\(foodName)"을 리뷰 첫 문장에 언급해주세요
+            2. 키워드에 있는 특징들을 자연스럽게 포함해주세요
+            3. 2-3문장, 100-150자로 작성해주세요
+            4. 배달앱 리뷰답게 친근하고 솔직한 말투로 작성해주세요
+            5. 맛, 포장 상태 등 실용적인 정보를 포함해주세요
+            
+            예시: "초밥 정말 맛있었어요! 연어가 신선하고 밥도 적당한 온도로 왔어요. 포장도 깔끔해서 재주문 의사 있습니다!"
+            
+            리뷰만 출력해주세요:
             """
 
             let response = try await session.respond(to: prompt)
+            print("### [ReviewService] 입력 키워드: \(keywords)")
+            print("### [ReviewService] 생성된 리뷰: \(response.content)")
             return response.content
         } catch {
             print("Foundation Models 오류: \(error.localizedDescription)")
@@ -75,7 +88,8 @@ class ReviewService {
 #endif
     }
 
-    /// 템플릿 기반 리뷰 생성 (Fallback)
+    /// 템플릿 기반 리뷰 생성 (Fallback) - 배달 음식 리뷰 특화
+    /// Vision에서 추출된 키워드를 직접 활용합니다
     private func generateWithTemplate(keywords: [String]) -> String {
         guard !keywords.isEmpty else {
             return "맛있게 잘 먹었습니다. 다음에 또 시켜먹을게요!"
@@ -117,10 +131,29 @@ class ReviewService {
             reviewParts.append("배달도 빠르고 음식이 따뜻하게 왔어요.")
         }
         
-        // 기본 리뷰 생성
+        // 기본 리뷰 생성 (키워드 매칭 안 된 경우)
         if reviewParts.isEmpty {
-            let keywordText = keywords.prefix(3).joined(separator: ", ")
-            return "\(keywordText) - 맛있게 잘 먹었습니다. 또 주문할게요!"
+            // Vision에서 추출된 첫 번째 키워드를 음식명으로 사용
+            let foodName = keywords.first ?? "음식"
+            
+            // 리뷰 템플릿 (랜덤 선택)
+            let templates = [
+                "\(foodName) 맛있게 잘 먹었습니다! 포장도 깔끔하게 잘 되어 왔어요. 재주문 의사 있습니다!",
+                "\(foodName) 정말 맛있었어요! 양도 적당하고 포장 상태도 좋았습니다. 또 시켜먹을게요!",
+                "배달 빠르고 \(foodName) 맛도 좋았어요. 포장이 꼼꼼해서 흘림 없이 잘 왔습니다.",
+                "\(foodName) 기대 이상이었어요! 따뜻하게 잘 도착했고 맛도 훌륭했습니다. 추천해요!",
+                "맛있는 \(foodName) 감사합니다! 포장도 신경 써주셔서 좋았어요. 재주문할게요!"
+            ]
+            
+            var review = templates.randomElement() ?? templates[0]
+            
+            // 키워드가 3개 이상이면 추가 키워드 언급
+            if keywords.count >= 3 {
+                let additionalKeywords = keywords.dropFirst().prefix(2).joined(separator: ", ")
+                review += " (\(additionalKeywords) 굿!)"
+            }
+            
+            return review
         }
         
         reviewParts.append("다음에도 또 주문하겠습니다!")
