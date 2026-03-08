@@ -6,13 +6,16 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -69,6 +72,9 @@ fun ImageScreen(
         onAnalyzeClick = {
             viewModel.onEvent(ImageContract.Event.OnAnalyzeClick)
         },
+        onDescriptionClick = {
+            viewModel.onEvent(ImageContract.Event.OnDescriptionClick)
+        },
     )
 }
 
@@ -77,6 +83,7 @@ private fun ImageContent(
     state: ImageContract.State,
     onPickImageClick: () -> Unit,
     onAnalyzeClick: () -> Unit,
+    onDescriptionClick: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -136,23 +143,48 @@ private fun ImageContent(
         if (state.hasSelectedImage) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            Button(
-                onClick = onAnalyzeClick,
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                enabled = !state.isAnalyzing,
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
             ) {
-                if (state.isAnalyzing) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp,
-                    )
-                } else {
-                    Text(
-                        text = "이미지 분석하기",
-                        modifier = Modifier.padding(vertical = 4.dp),
-                    )
+                Button(
+                    onClick = onAnalyzeClick,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = !state.isAnalyzing && !state.isDescribing,
+                ) {
+                    if (state.isAnalyzing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(25.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp,
+                        )
+                    } else {
+                        Text(
+                            text = "이미지 분석하기",
+                            modifier = Modifier.padding(vertical = 4.dp),
+                        )
+                    }
+                }
+
+                Button(
+                    onClick = onDescriptionClick,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = !state.isAnalyzing && !state.isDescribing,
+                ) {
+                    if (state.isDescribing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(25.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp,
+                        )
+                    } else {
+                        Text(
+                            text = "이미지 설명",
+                            modifier = Modifier.padding(vertical = 4.dp),
+                        )
+                    }
                 }
             }
         }
@@ -167,13 +199,13 @@ private fun ImageContent(
 
         // 분석 결과
         if (state.hasAnalysisResult) {
-            AnalysisResultCard(labels = state.analysisResult)
+            AnalysisResultCard(meta = state.analysisResult)
         }
 
         // 분석 안내 메시지
         if (state.shouldShowAnalysisGuide) {
             Text(
-                text = "이미지를 분석하려면 '이미지 분석하기' 버튼을 눌러주세요",
+                text = "이미지를 분석하려면 '이미지 분석하기' 혹은 '이미지 설명' 버튼을 눌러주세요",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,

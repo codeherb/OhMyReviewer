@@ -29,6 +29,7 @@ kotlin {
         }
         androidMain.dependencies {
             implementation(libs.google.mlkit.imageLabeling)
+            implementation(libs.google.mlkit.imageDescription)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

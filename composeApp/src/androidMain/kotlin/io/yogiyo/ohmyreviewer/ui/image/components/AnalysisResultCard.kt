@@ -17,7 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import io.yogiyo.ohmyreviewer.ImageLabel
+import io.yogiyo.ohmyreviewer.ImageMeta
 
 /**
  * 분석 결과를 표시하는 카드 컴포넌트
@@ -28,7 +28,7 @@ import io.yogiyo.ohmyreviewer.ImageLabel
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AnalysisResultCard(
-    labels: List<ImageLabel>,
+    meta: ImageMeta,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -41,22 +41,37 @@ fun AnalysisResultCard(
         Column(
             modifier = Modifier.padding(16.dp),
         ) {
-            Text(
-                text = "분석 결과",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
+            when(meta) {
+                is ImageMeta.ImageLabels -> {
+                    Text(
+                        text = "분석 결과",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
 
-            Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                labels.forEach { label ->
-                    LabelChip(label = label)
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        meta.labels.forEach { label ->
+                            LabelChip(label = label)
+                        }
+                    }
+                }
+                is ImageMeta.ImageDescription -> {
+                    Text(
+                        text = meta.text,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
+                else -> {
+                    // Do Nothing
                 }
             }
         }

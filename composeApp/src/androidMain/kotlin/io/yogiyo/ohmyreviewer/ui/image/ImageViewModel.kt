@@ -6,16 +6,23 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.viewModelScope
 import io.yogiyo.ohmyreviewer.ImageAnalyzer
+import io.yogiyo.ohmyreviewer.ImageMeta
+import io.yogiyo.ohmyreviewer.data.datasource.MLDatasource
+import io.yogiyo.ohmyreviewer.data.model.AndroidPlatformImage
 import io.yogiyo.ohmyreviewer.ui.base.MviViewModel
+import io.yogiyo.ohmyreviewer.util.decodeBitmapWithOrientation
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import io.yogiyo.ohmyreviewer.util.decodeBitmapWithOrientation
 import java.io.ByteArrayOutputStream
 
 class ImageViewModel(
     private val appContext: Context,
     private val imageAnalyzer: ImageAnalyzer,
+    private val mlDatasource: MLDatasource,
 ) : MviViewModel<ImageContract.State, ImageContract.Event, ImageContract.Effect>(
     initialState = ImageContract.State(),
 ) {
@@ -24,6 +31,7 @@ class ImageViewModel(
         when (event) {
             is ImageContract.Event.OnImageSelected -> onImageSelected(event.uri)
             is ImageContract.Event.OnAnalyzeClick -> analyzeImage()
+            is ImageContract.Event.OnDescriptionClick -> descriptionImage()
         }
     }
 
@@ -34,7 +42,7 @@ class ImageViewModel(
             copy(
                 isLoading = true,
                 selectedImageUri = uri,
-                analysisResult = emptyList(),
+                analysisResult = ImageMeta.None,
                 errorMessage = null,
             )
         }
@@ -56,7 +64,7 @@ class ImageViewModel(
         val currentBitmap = state.value.selectedBitmap ?: return
 
         viewModelScope.launch {
-            updateState { copy(isAnalyzing = true, errorMessage = null, analysisResult = emptyList()) }
+            updateState { copy(isAnalyzing = true, errorMessage = null, analysisResult = ImageMeta.None) }
 
             try {
                 val result = withContext(Dispatchers.IO) {
@@ -71,7 +79,7 @@ class ImageViewModel(
                 if (result.isEmpty()) {
                     updateState {
                         copy(
-                            analysisResult = emptyList(),
+                            analysisResult = ImageMeta.None,
                             isAnalyzing = false,
                             errorMessage = "이미지에서 라벨을 감지하지 못했습니다. 다른 이미지를 시도해보세요.",
                         )
@@ -79,7 +87,7 @@ class ImageViewModel(
                 } else {
                     updateState {
                         copy(
-                            analysisResult = result,
+                            analysisResult = ImageMeta.ImageLabels(result),
                             isAnalyzing = false,
                         )
                     }
@@ -92,6 +100,53 @@ class ImageViewModel(
                     copy(
                         errorMessage = errorMsg,
                         isAnalyzing = false,
+                    )
+                }
+            }
+        }
+    }
+
+    private fun descriptionImage() {
+        val currentBitmap = state.value.selectedBitmap ?: return
+
+        viewModelScope.launch {
+            updateState { copy(isDescribing = true, errorMessage = null, analysisResult = ImageMeta.None) }
+
+            mlDatasource.initializeImageDescription().await()
+
+            try {
+                mlDatasource.generateImageDescription(AndroidPlatformImage.create(currentBitmap))
+                    .map {
+                        ImageMeta.ImageDescription(it)
+                    }
+                    .catch {
+                        val errorMsg = "분석 실패: ${it.message}"
+                        Log.e(TAG, "analyzeImage error", it)
+
+                        updateState {
+                            copy(
+                                errorMessage = errorMsg,
+                                isDescribing = false,
+                            )
+                        }
+                    }
+                    .flowOn(Dispatchers.IO)
+                    .collect {
+                        updateState {
+                            copy(
+                                analysisResult = it,
+                                isDescribing = false,
+                            )
+                        }
+                    }
+            } catch (e: Exception) {
+                val errorMsg = "분석 실패: ${e.message}"
+                Log.e(TAG, "analyzeImage error", e)
+
+                updateState {
+                    copy(
+                        errorMessage = errorMsg,
+                        isDescribing = false,
                     )
                 }
             }

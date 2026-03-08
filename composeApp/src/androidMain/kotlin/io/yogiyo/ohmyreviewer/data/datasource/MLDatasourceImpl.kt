@@ -2,6 +2,7 @@ package io.yogiyo.ohmyreviewer.data.datasource
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.util.Log
 import com.google.mlkit.genai.common.DownloadCallback
 import com.google.mlkit.genai.common.DownloadStatus
@@ -152,8 +153,16 @@ class MLDatasourceImpl(
 
     override fun generateImageDescription(image: PlatformImage): Flow<String> {
         return callbackFlow {
+            val bitmap = when(image.image) {
+                is Bitmap -> image.image as Bitmap
+                is ByteArray -> {
+                    val byteArray = image.image as ByteArray
+                    BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
+                }
+                else -> throw IllegalArgumentException()
+            }
             val imageDescriptionRequest = ImageDescriptionRequest
-                .builder(image.image as Bitmap)
+                .builder(bitmap)
                 .build()
 
             imageDescriber?.runInference(imageDescriptionRequest) { outputText ->

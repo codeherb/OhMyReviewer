@@ -91,11 +91,7 @@ class ReviewViewModel(
 
             try {
                 // ML Kit runInference가 비트맵을 recycle할 수 있으므로 복사본을 전달
-                val bitmapForInference = currentBitmap.copy(
-                    currentBitmap.config ?: Bitmap.Config.ARGB_8888,
-                    false,
-                )
-                val platformImage = AndroidPlatformImage(bitmapForInference)
+                val platformImage = AndroidPlatformImage.create(currentBitmap)
 
                 mlDatasource.generateImageDescription(platformImage)
                     .flowOn(Dispatchers.IO)

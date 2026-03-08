@@ -1,5 +1,15 @@
 package io.yogiyo.ohmyreviewer
 
+sealed interface ImageMeta {
+    object None : ImageMeta
+    data class ImageLabels(
+        val labels: List<ImageLabel> = emptyList()
+    ): ImageMeta
+    data class ImageDescription(
+        val text: String
+    ): ImageMeta
+}
+
 /**
  * 이미지 분석 결과 라벨
  */
