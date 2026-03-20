@@ -17,4 +17,8 @@ class MLRepositoryImpl(
         return aiDatasource.generateImageDescription(image)
     }
 
+    override fun generateCloudImageDescription(image: PlatformImage): Flow<String> {
+        TODO("Not yet implemented")
+    }
+
 }

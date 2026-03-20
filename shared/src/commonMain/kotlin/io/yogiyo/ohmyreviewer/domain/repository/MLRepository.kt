@@ -9,4 +9,6 @@ interface MLRepository {
 
     fun generateImageDescription(image: PlatformImage): Flow<String>
 
+    fun generateCloudImageDescription(image: PlatformImage): Flow<String>
+
 }
