@@ -251,17 +251,15 @@ struct ContentView: View {
                 print("### [ContentView] ImageAnalyzer.analyzeImage 호출 전")
                 let labels = await ImageAnalyzer.shared.analyzeImage(image)
                 print("### [ContentView] analyzeImage 완료 - labels: \(labels)")
-                let texts = await ImageAnalyzer.shared.recognizeText(image)
-                print("### [ContentView] recognizeText 완료 - texts: \(texts)")
                 let keywords: [String]
                 #if canImport(FoundationModels)
                 if #available(iOS 26, *) {
-                    keywords = await ImageAnalyzer.shared.enrichKeywords(labels: labels, texts: texts)
+                    keywords = await ImageAnalyzer.shared.enrichKeywords(labels: labels)
                 } else {
-                    keywords = labels + texts
+                    keywords = labels
                 }
                 #else
-                keywords = labels + texts
+                keywords = labels
                 #endif
 
                 await MainActor.run {
