@@ -23,4 +23,10 @@ object PromptBuilder {
             "3~5문장으로 작성해주세요.\n" +
             "$SYSTEM_INSTRUCTION\n\n" +
             "메뉴 정보: $text"
+
+    fun buildImageReviewPrompt(): String =
+        "이 음식 사진을 분석해서 배달 앱에 올릴 한국어 리뷰를 작성해주세요.\n" +
+            "음식의 종류, 외형, 양, 플레이팅 등을 묘사하고 자연스럽고 솔직한 톤으로 만족감을 표현해주세요.\n" +
+            "3~5문장으로 작성해주세요.\n" +
+            SYSTEM_INSTRUCTION
 }
