@@ -10,6 +10,10 @@ interface MLDatasource {
 
     val downloadProgress: StateFlow<Float>
 
+    val isPromptApiAvailable: Boolean
+
+    val isCloudApiAvailable: Boolean
+
     fun initialize(): Deferred<ModelStatus>
 
     fun initializeImageDescription(): Deferred<ModelStatus>
@@ -17,6 +21,10 @@ interface MLDatasource {
     fun generateContent(prompt: String): Flow<String>
 
     fun generateImageDescription(image: PlatformImage): Flow<String>
+
+    fun generateReview(image: PlatformImage, prompt: String): Flow<String>
+
+    fun generateTextReview(prompt: String): Flow<String>
 
     fun close(): Deferred<Unit>
 

@@ -11,6 +11,12 @@ class MLDatasourceImpl() : MLDatasource {
 
     override val downloadProgress: StateFlow<Float> = MutableStateFlow(0f)
 
+    override var isPromptApiAvailable: Boolean = false
+        private set
+
+    override var isCloudApiAvailable: Boolean = false
+        private set
+
     override fun initialize(): Deferred<ModelStatus> {
         TODO("Not yet implemented")
     }
@@ -24,6 +30,14 @@ class MLDatasourceImpl() : MLDatasource {
     }
 
     override fun generateImageDescription(image: PlatformImage): Flow<String> {
+        TODO("Not yet implemented")
+    }
+
+    override fun generateReview(image: PlatformImage, prompt: String): Flow<String> {
+        TODO("Not yet implemented")
+    }
+
+    override fun generateTextReview(prompt: String): Flow<String> {
         TODO("Not yet implemented")
     }
 

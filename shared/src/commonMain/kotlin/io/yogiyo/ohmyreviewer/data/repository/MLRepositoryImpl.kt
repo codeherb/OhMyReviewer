@@ -1,24 +1,48 @@
 package io.yogiyo.ohmyreviewer.data.repository
 
 import io.yogiyo.ohmyreviewer.data.datasource.MLDatasource
+import io.yogiyo.ohmyreviewer.data.model.ModelStatus
 import io.yogiyo.ohmyreviewer.data.model.PlatformImage
 import io.yogiyo.ohmyreviewer.domain.repository.MLRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 
 class MLRepositoryImpl(
-    private val aiDatasource: MLDatasource
+    private val datasource: MLDatasource,
 ) : MLRepository {
 
-    override fun generateContent(prompt: String): Flow<String> {
-        return aiDatasource.generateContent(prompt)
-    }
+    override val downloadProgress: StateFlow<Float>
+        get() = datasource.downloadProgress
 
-    override fun generateImageDescription(image: PlatformImage): Flow<String> {
-        return aiDatasource.generateImageDescription(image)
-    }
+    override val isCloudApiAvailable: Boolean
+        get() = datasource.isCloudApiAvailable
+
+    override val isPromptApiAvailable: Boolean
+        get() = datasource.isPromptApiAvailable
+
+    override suspend fun initialize(): ModelStatus =
+        datasource.initialize().await()
+
+    override suspend fun initializeImageDescription(): ModelStatus =
+        datasource.initializeImageDescription().await()
+
+    override fun generateContent(prompt: String): Flow<String> =
+        datasource.generateContent(prompt)
 
     override fun generateCloudImageDescription(image: PlatformImage): Flow<String> {
         TODO("Not yet implemented")
     }
 
+    override fun generateImageDescription(image: PlatformImage): Flow<String> =
+        datasource.generateImageDescription(image)
+
+    override fun generateReview(image: PlatformImage, prompt: String): Flow<String> =
+        datasource.generateReview(image, prompt)
+
+    override fun generateTextReview(prompt: String): Flow<String> =
+        datasource.generateTextReview(prompt)
+
+    override suspend fun close() {
+        datasource.close().await()
+    }
 }
