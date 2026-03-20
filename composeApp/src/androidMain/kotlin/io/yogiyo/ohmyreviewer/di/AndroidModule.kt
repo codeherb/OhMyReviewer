@@ -12,13 +12,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
-import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
 val androidModule = module {
     single<MLDatasource> { MLDatasourceImpl(androidContext(), get()) }
     single { ImageAnalyzer() }
-
     factory {
         val errorHandler = CoroutineExceptionHandler { _, throwable ->
             Log.e("ExternalScope", null,throwable)
