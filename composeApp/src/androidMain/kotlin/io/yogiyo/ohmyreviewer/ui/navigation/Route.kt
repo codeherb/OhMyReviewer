@@ -7,4 +7,5 @@ object Route {
     const val IMAGE = "image"
     const val REVIEW = "review"
     const val AI_TEXT_REVIEW = "ai_text_review"
+    const val AI_IMAGE_REVIEW = "ai_image_review"
 }

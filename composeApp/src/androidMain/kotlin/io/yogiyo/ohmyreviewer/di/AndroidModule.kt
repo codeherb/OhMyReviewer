@@ -5,6 +5,7 @@ import io.yogiyo.ohmyreviewer.BuildConfig
 import io.yogiyo.ohmyreviewer.ImageAnalyzer
 import io.yogiyo.ohmyreviewer.data.datasource.MLDatasourceImpl
 import io.yogiyo.ohmyreviewer.data.datasource.MLDatasource
+import io.yogiyo.ohmyreviewer.ui.aiimagereview.AiImageReviewViewModel
 import io.yogiyo.ohmyreviewer.ui.aitextreview.AiTextReviewViewModel
 import io.yogiyo.ohmyreviewer.ui.image.ImageViewModel
 import io.yogiyo.ohmyreviewer.ui.review.ReviewViewModel
@@ -33,4 +34,5 @@ val androidModule = module {
     viewModel { ImageViewModel(androidContext(), get(), get()) }
     viewModel { ReviewViewModel(androidContext(), get()) }
     viewModel { AiTextReviewViewModel(get(), get(), get(), get()) }
+    viewModel { AiImageReviewViewModel(androidContext().contentResolver, get(), get(), get()) }
 }
