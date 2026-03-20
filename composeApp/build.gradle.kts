@@ -1,5 +1,6 @@
-import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.io.FileInputStream
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -23,6 +24,7 @@ kotlin {
             implementation(libs.google.mlkit.imageLabeling)
             implementation(libs.google.mlkit.imageDescription)
             implementation(libs.google.mlkit.prompt)
+            implementation(libs.google.generativeai)
             implementation(libs.koin.android)
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
@@ -55,6 +57,17 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
+
+        val localPropertiesFile = rootProject.file("local.properties")
+        val geminiApiKey = if (localPropertiesFile.exists()) {
+            val props = Properties()
+            FileInputStream(localPropertiesFile).use { props.load(it) }
+            props.getProperty("GEMINI_API_KEY", "")
+        } else ""
+        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
+    }
+    buildFeatures {
+        buildConfig = true
     }
     packaging {
         resources {

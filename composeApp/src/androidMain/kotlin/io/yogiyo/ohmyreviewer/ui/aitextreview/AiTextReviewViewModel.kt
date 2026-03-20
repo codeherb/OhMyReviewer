@@ -1,4 +1,4 @@
-package io.yogiyo.ohmyreviewer.ui.aireview
+package io.yogiyo.ohmyreviewer.ui.aitextreview
 
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.lifecycle.viewModelScope
@@ -14,13 +14,13 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 
-class AiReviewViewModel(
+class AiTextReviewViewModel(
     private val repository: MLRepository,
     private val initializeModelUseCase: InitializeModelUseCase,
     private val generateTextReviewUseCase: GenerateTextReviewUseCase,
     private val parseReviewRequestUseCase: ParseReviewRequestUseCase,
-) : MviViewModel<AiReviewContract.State, AiReviewContract.Event, AiReviewContract.Effect>(
-    initialState = AiReviewContract.State(),
+) : MviViewModel<AiTextReviewContract.State, AiTextReviewContract.Event, AiTextReviewContract.Effect>(
+    initialState = AiTextReviewContract.State(),
 ) {
 
     val reviewTextFieldState = TextFieldState()
@@ -30,10 +30,10 @@ class AiReviewViewModel(
         collectDownloadProgress()
     }
 
-    override fun handleEvent(event: AiReviewContract.Event) {
+    override fun handleEvent(event: AiTextReviewContract.Event) {
         when (event) {
-            is AiReviewContract.Event.OnMenuInputChanged -> onMenuInputChanged(event.input)
-            is AiReviewContract.Event.OnGenerateClick -> generateReview()
+            is AiTextReviewContract.Event.OnMenuInputChanged -> onMenuInputChanged(event.input)
+            is AiTextReviewContract.Event.OnGenerateClick -> generateReview()
         }
     }
 
@@ -78,7 +78,7 @@ class AiReviewViewModel(
                 .onStart { updateState { copy(isGenerating = true, generatedReview = "") } }
                 .catch { e ->
                     updateState { copy(isGenerating = false) }
-                    sendEffect(AiReviewContract.Effect.ShowError("AI 리뷰 생성 실패: ${e.message}"))
+                    sendEffect(AiTextReviewContract.Effect.ShowError("AI 리뷰 생성 실패: ${e.message}"))
                 }
                 .collect { review ->
                     updateState { copy(generatedReview = review, isGenerating = false) }

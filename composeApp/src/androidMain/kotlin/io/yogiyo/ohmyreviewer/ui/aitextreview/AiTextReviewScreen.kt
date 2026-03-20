@@ -1,4 +1,4 @@
-package io.yogiyo.ohmyreviewer.ui.aireview
+package io.yogiyo.ohmyreviewer.ui.aitextreview
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -32,15 +32,15 @@ import io.yogiyo.ohmyreviewer.data.model.ReviewRequestData
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
-fun AiReviewScreen(
-    viewModel: AiReviewViewModel = koinViewModel(),
+fun AiTextReviewScreen(
+    viewModel: AiTextReviewViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
-                is AiReviewContract.Effect.ShowError -> {
+                is AiTextReviewContract.Effect.ShowError -> {
                     // TODO: Snackbar로 에러 표시
                 }
             }
@@ -51,17 +51,17 @@ fun AiReviewScreen(
         state = state,
         reviewTextFieldState = viewModel.reviewTextFieldState,
         onMenuInputChanged = {
-            viewModel.onEvent(AiReviewContract.Event.OnMenuInputChanged(it))
+            viewModel.onEvent(AiTextReviewContract.Event.OnMenuInputChanged(it))
         },
         onGenerateClick = {
-            viewModel.onEvent(AiReviewContract.Event.OnGenerateClick)
+            viewModel.onEvent(AiTextReviewContract.Event.OnGenerateClick)
         },
     )
 }
 
 @Composable
 private fun AiReviewContent(
-    state: AiReviewContract.State,
+    state: AiTextReviewContract.State,
     reviewTextFieldState: TextFieldState,
     onMenuInputChanged: (String) -> Unit,
     onGenerateClick: () -> Unit,
@@ -198,7 +198,7 @@ private fun ParsedDataCard(data: ReviewRequestData) {
 }
 
 @Composable
-private fun ModelStatusSection(state: AiReviewContract.State) {
+private fun ModelStatusSection(state: AiTextReviewContract.State) {
     when {
         state.isInitializingModel -> {
             Column(

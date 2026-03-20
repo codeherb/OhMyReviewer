@@ -15,6 +15,7 @@ kotlin = "2.3.0"
 mlkit-imageLabeling = "16.0.8"
 mlkit-imageDescription = "1.0.0-beta1"
 mlkit-prompt = "1.0.0-beta1"
+google-generativeai = "0.9.0"
 kotlinx-coroutines = "1.10.1"
 koin = "4.0.2"
 androidx-navigation = "2.9.1"
@@ -33,6 +34,7 @@ androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle
 google-mlkit-imageLabeling = { module = "com.google.android.gms:play-services-mlkit-image-labeling", version.ref = "mlkit-imageLabeling" }
 google-mlkit-imageDescription = { module = "com.google.mlkit:genai-image-description", version.ref = "mlkit-imageDescription" }
 google-mlkit-prompt = { module = "com.google.mlkit:genai-prompt", version.ref = "mlkit-prompt"}
+google-generativeai = { module = "com.google.ai.client.generativeai:generativeai", version.ref = "google-generativeai" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }

@@ -1,4 +1,4 @@
-package io.yogiyo.ohmyreviewer.ui.aireview
+package io.yogiyo.ohmyreviewer.ui.aitextreview
 
 import io.yogiyo.ohmyreviewer.data.model.ModelStatus
 import io.yogiyo.ohmyreviewer.data.model.ReviewRequestData
@@ -6,7 +6,7 @@ import io.yogiyo.ohmyreviewer.ui.base.UiEffect
 import io.yogiyo.ohmyreviewer.ui.base.UiEvent
 import io.yogiyo.ohmyreviewer.ui.base.UiState
 
-object AiReviewContract {
+object AiTextReviewContract {
 
     data class State(
         val menuInput: String = "",

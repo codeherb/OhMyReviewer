@@ -1,6 +1,7 @@
 package io.yogiyo.ohmyreviewer.ui.navigation
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.RateReview
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -22,5 +23,10 @@ enum class BottomTab(
         route = Route.REVIEW,
         label = "리뷰",
         icon = Icons.Default.RateReview,
+    ),
+    AI_REVIEW(
+        route = Route.AI_TEXT_REVIEW,
+        label = "AI 텍스트 리뷰",
+        icon = Icons.Default.AutoAwesome,
     ),
 }
