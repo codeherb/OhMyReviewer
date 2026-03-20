@@ -1,6 +1,9 @@
 package io.yogiyo.ohmyreviewer.ui.aitextreview
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,6 +18,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -28,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.yogiyo.ohmyreviewer.data.model.GeminiModel
 import io.yogiyo.ohmyreviewer.data.model.ReviewRequestData
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -53,6 +59,9 @@ fun AiTextReviewScreen(
         onMenuInputChanged = {
             viewModel.onEvent(AiTextReviewContract.Event.OnMenuInputChanged(it))
         },
+        onModelSelected = {
+            viewModel.onEvent(AiTextReviewContract.Event.OnModelSelected(it))
+        },
         onGenerateClick = {
             viewModel.onEvent(AiTextReviewContract.Event.OnGenerateClick)
         },
@@ -64,6 +73,7 @@ private fun AiReviewContent(
     state: AiTextReviewContract.State,
     reviewTextFieldState: TextFieldState,
     onMenuInputChanged: (String) -> Unit,
+    onModelSelected: (GeminiModel) -> Unit,
     onGenerateClick: () -> Unit,
 ) {
     Column(
@@ -83,6 +93,15 @@ private fun AiReviewContent(
         ModelStatusSection(state = state)
 
         Spacer(modifier = Modifier.height(12.dp))
+
+        if (state.isCloudMode) {
+            ModelSelector(
+                selectedModel = state.selectedModel,
+                onModelSelected = onModelSelected,
+                enabled = !state.isGenerating,
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
 
         MenuInputSection(
             menuInput = state.menuInput,
@@ -197,6 +216,40 @@ private fun ParsedDataCard(data: ReviewRequestData) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ModelSelector(
+    selectedModel: GeminiModel,
+    onModelSelected: (GeminiModel) -> Unit,
+    enabled: Boolean,
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "모델 선택",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            GeminiModel.entries.forEach { model ->
+                FilterChip(
+                    selected = model == selectedModel,
+                    onClick = { onModelSelected(model) },
+                    enabled = enabled,
+                    label = { Text(model.displayName, style = MaterialTheme.typography.labelSmall) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    ),
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun ModelStatusSection(state: AiTextReviewContract.State) {
     when {
@@ -227,7 +280,7 @@ private fun ModelStatusSection(state: AiTextReviewContract.State) {
         }
 
         state.isModelReady -> {
-            val modeLabel = if (state.isCloudMode) "Cloud" else "On-device"
+            val modeLabel = if (state.isCloudMode) "Cloud - ${state.selectedModel.displayName}" else "On-device"
             Text(
                 text = "AI 모델 준비 완료 ($modeLabel)",
                 style = MaterialTheme.typography.bodySmall,

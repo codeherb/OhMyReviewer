@@ -1,6 +1,7 @@
 package io.yogiyo.ohmyreviewer.data.repository
 
 import io.yogiyo.ohmyreviewer.data.datasource.MLDatasource
+import io.yogiyo.ohmyreviewer.data.model.GeminiModel
 import io.yogiyo.ohmyreviewer.data.model.ModelStatus
 import io.yogiyo.ohmyreviewer.data.model.PlatformImage
 import io.yogiyo.ohmyreviewer.domain.repository.MLRepository
@@ -41,6 +42,12 @@ class MLRepositoryImpl(
 
     override fun generateTextReview(prompt: String): Flow<String> =
         datasource.generateTextReview(prompt)
+
+    override val currentCloudModel: GeminiModel
+        get() = datasource.currentCloudModel
+
+    override fun changeCloudModel(model: GeminiModel) =
+        datasource.changeCloudModel(model)
 
     override suspend fun close() {
         datasource.close().await()

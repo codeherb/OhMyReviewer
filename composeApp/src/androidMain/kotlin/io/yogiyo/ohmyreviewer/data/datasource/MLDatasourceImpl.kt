@@ -20,6 +20,7 @@ import com.google.mlkit.genai.prompt.GenerativeModel
 import com.google.mlkit.genai.prompt.ImagePart
 import com.google.mlkit.genai.prompt.TextPart
 import com.google.mlkit.genai.prompt.generateContentRequest
+import io.yogiyo.ohmyreviewer.data.model.GeminiModel
 import io.yogiyo.ohmyreviewer.data.model.ModelStatus
 import io.yogiyo.ohmyreviewer.data.model.PlatformImage
 import kotlin.coroutines.resume
@@ -50,6 +51,9 @@ class MLDatasourceImpl(
         private set
 
     override var isCloudApiAvailable: Boolean = false
+        private set
+
+    override var currentCloudModel: GeminiModel = GeminiModel.DEFAULT
         private set
 
     private var totalBytesToDownload: Long = 0L
@@ -145,16 +149,28 @@ class MLDatasourceImpl(
     }
 
     private fun initializeCloudModel() {
-        if (geminiApiKey.isBlank() || geminiCloudModel != null) return
-        geminiCloudModel = GeminiCloudModel(
-            modelName = "gemini-2.5-flash-lite",
+        if (geminiApiKey.isBlank()) return
+        geminiCloudModel = createCloudModel(currentCloudModel)
+        isCloudApiAvailable = true
+    }
+
+    private fun createCloudModel(model: GeminiModel): GeminiCloudModel =
+        GeminiCloudModel(
+            modelName = model.modelId,
             apiKey = geminiApiKey,
             generationConfig = generationConfig {
                 temperature = 0.7f
                 maxOutputTokens = 1024
             },
         )
-        isCloudApiAvailable = true
+
+    override fun changeCloudModel(model: GeminiModel) {
+        if (model == currentCloudModel) return
+        currentCloudModel = model
+        if (geminiApiKey.isNotBlank()) {
+            geminiCloudModel = createCloudModel(model)
+            isCloudApiAvailable = true
+        }
     }
 
     private fun initializeOnDeviceModels() {

@@ -2,6 +2,7 @@ package io.yogiyo.ohmyreviewer.ui.aitextreview
 
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.lifecycle.viewModelScope
+import io.yogiyo.ohmyreviewer.data.model.GeminiModel
 import io.yogiyo.ohmyreviewer.data.model.ModelStatus
 import io.yogiyo.ohmyreviewer.domain.repository.MLRepository
 import io.yogiyo.ohmyreviewer.domain.usecase.GenerateTextReviewUseCase
@@ -33,8 +34,14 @@ class AiTextReviewViewModel(
     override fun handleEvent(event: AiTextReviewContract.Event) {
         when (event) {
             is AiTextReviewContract.Event.OnMenuInputChanged -> onMenuInputChanged(event.input)
+            is AiTextReviewContract.Event.OnModelSelected -> onModelSelected(event.model)
             is AiTextReviewContract.Event.OnGenerateClick -> generateReview()
         }
+    }
+
+    private fun onModelSelected(model: GeminiModel) {
+        repository.changeCloudModel(model)
+        updateState { copy(selectedModel = model) }
     }
 
     private fun onMenuInputChanged(input: String) {

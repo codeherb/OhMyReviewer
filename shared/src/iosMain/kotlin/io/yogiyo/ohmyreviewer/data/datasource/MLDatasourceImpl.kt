@@ -1,5 +1,6 @@
 package io.yogiyo.ohmyreviewer.data.datasource
 
+import io.yogiyo.ohmyreviewer.data.model.GeminiModel
 import io.yogiyo.ohmyreviewer.data.model.ModelStatus
 import io.yogiyo.ohmyreviewer.data.model.PlatformImage
 import kotlinx.coroutines.Deferred
@@ -39,6 +40,13 @@ class MLDatasourceImpl() : MLDatasource {
 
     override fun generateTextReview(prompt: String): Flow<String> {
         TODO("Not yet implemented")
+    }
+
+    override var currentCloudModel: GeminiModel = GeminiModel.DEFAULT
+        private set
+
+    override fun changeCloudModel(model: GeminiModel) {
+        currentCloudModel = model
     }
 
     override fun close(): Deferred<Unit> {
