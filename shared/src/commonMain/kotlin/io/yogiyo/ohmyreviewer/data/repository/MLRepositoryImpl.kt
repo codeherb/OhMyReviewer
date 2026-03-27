@@ -1,5 +1,6 @@
 package io.yogiyo.ohmyreviewer.data.repository
 
+import io.yogiyo.ohmyreviewer.data.datasource.CloudMLDatasource
 import io.yogiyo.ohmyreviewer.data.datasource.MLDatasource
 import io.yogiyo.ohmyreviewer.data.model.GeminiModel
 import io.yogiyo.ohmyreviewer.data.model.ModelStatus
@@ -10,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 
 class MLRepositoryImpl(
     private val datasource: MLDatasource,
+    private val cloudDatasource: CloudMLDatasource
 ) : MLRepository {
 
     override val downloadProgress: StateFlow<Float>
@@ -31,7 +33,7 @@ class MLRepositoryImpl(
         datasource.generateContent(prompt)
 
     override fun generateCloudImageDescription(image: PlatformImage): Flow<String> {
-        TODO("Not yet implemented")
+        return cloudDatasource.generateImageDescription(image)
     }
 
     override fun generateImageDescription(image: PlatformImage): Flow<String> =

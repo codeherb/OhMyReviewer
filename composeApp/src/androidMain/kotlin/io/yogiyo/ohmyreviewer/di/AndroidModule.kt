@@ -22,7 +22,6 @@ val androidModule = module {
         MLDatasourceImpl(androidContext(), get(), BuildConfig.GEMINI_API_KEY)
     }
     single { ImageAnalyzer() }
-
     factory {
         val errorHandler = CoroutineExceptionHandler { _, throwable ->
             Log.e("ExternalScope", null,throwable)
