@@ -9,10 +9,7 @@ import android.provider.MediaStore
 import androidx.lifecycle.viewModelScope
 import io.yogiyo.ohmyreviewer.data.model.AndroidPlatformImage
 import io.yogiyo.ohmyreviewer.data.model.GeminiModel
-import io.yogiyo.ohmyreviewer.data.model.ModelStatus
-import io.yogiyo.ohmyreviewer.domain.repository.MLRepository
 import io.yogiyo.ohmyreviewer.domain.usecase.GenerateImageReviewUseCase
-import io.yogiyo.ohmyreviewer.domain.usecase.InitializeModelUseCase
 import io.yogiyo.ohmyreviewer.ui.base.MviViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.catch
@@ -22,17 +19,10 @@ import kotlinx.coroutines.launch
 
 class AiImageReviewViewModel(
     private val contentResolver: ContentResolver,
-    private val repository: MLRepository,
-    private val initializeModelUseCase: InitializeModelUseCase,
     private val generateImageReviewUseCase: GenerateImageReviewUseCase,
 ) : MviViewModel<AiImageReviewContract.State, AiImageReviewContract.Event, AiImageReviewContract.Effect>(
     initialState = AiImageReviewContract.State(),
 ) {
-
-    init {
-        initializeModel()
-        collectDownloadProgress()
-    }
 
     override fun handleEvent(event: AiImageReviewContract.Event) {
         when (event) {
@@ -66,42 +56,15 @@ class AiImageReviewViewModel(
     }.getOrNull()
 
     private fun onModelSelected(model: GeminiModel) {
-        repository.changeCloudModel(model)
         updateState { copy(selectedModel = model) }
-    }
-
-    private fun initializeModel() {
-        viewModelScope.launch {
-            updateState { copy(isInitializingModel = true) }
-            initializeModelUseCase.initializeAll()
-                .onSuccess { status ->
-                    updateState {
-                        copy(
-                            modelStatus = status,
-                            isInitializingModel = false,
-                            isCloudMode = repository.isCloudApiAvailable,
-                        )
-                    }
-                }
-                .onFailure {
-                    updateState { copy(modelStatus = ModelStatus.UNAVAILABLE, isInitializingModel = false) }
-                }
-        }
-    }
-
-    private fun collectDownloadProgress() {
-        viewModelScope.launch {
-            repository.downloadProgress.collect { progress ->
-                updateState { copy(downloadProgress = progress) }
-            }
-        }
     }
 
     private fun generateReview() {
         val bitmap = state.value.selectedImage ?: return
+        val model = state.value.selectedModel
 
         viewModelScope.launch {
-            generateImageReviewUseCase(AndroidPlatformImage.create(bitmap))
+            generateImageReviewUseCase(model, AndroidPlatformImage.create(bitmap))
                 .flowOn(Dispatchers.IO)
                 .onStart { updateState { copy(isGenerating = true, generatedReview = "") } }
                 .catch { e ->

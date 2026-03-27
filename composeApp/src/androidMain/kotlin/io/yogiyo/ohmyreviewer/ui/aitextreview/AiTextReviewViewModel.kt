@@ -3,10 +3,7 @@ package io.yogiyo.ohmyreviewer.ui.aitextreview
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.lifecycle.viewModelScope
 import io.yogiyo.ohmyreviewer.data.model.GeminiModel
-import io.yogiyo.ohmyreviewer.data.model.ModelStatus
-import io.yogiyo.ohmyreviewer.domain.repository.MLRepository
 import io.yogiyo.ohmyreviewer.domain.usecase.GenerateTextReviewUseCase
-import io.yogiyo.ohmyreviewer.domain.usecase.InitializeModelUseCase
 import io.yogiyo.ohmyreviewer.domain.usecase.ParseReviewRequestUseCase
 import io.yogiyo.ohmyreviewer.ui.base.MviViewModel
 import kotlinx.coroutines.Dispatchers
@@ -16,8 +13,6 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 
 class AiTextReviewViewModel(
-    private val repository: MLRepository,
-    private val initializeModelUseCase: InitializeModelUseCase,
     private val generateTextReviewUseCase: GenerateTextReviewUseCase,
     private val parseReviewRequestUseCase: ParseReviewRequestUseCase,
 ) : MviViewModel<AiTextReviewContract.State, AiTextReviewContract.Event, AiTextReviewContract.Effect>(
@@ -25,11 +20,6 @@ class AiTextReviewViewModel(
 ) {
 
     val reviewTextFieldState = TextFieldState()
-
-    init {
-        initializeModel()
-        collectDownloadProgress()
-    }
 
     override fun handleEvent(event: AiTextReviewContract.Event) {
         when (event) {
@@ -40,7 +30,6 @@ class AiTextReviewViewModel(
     }
 
     private fun onModelSelected(model: GeminiModel) {
-        repository.changeCloudModel(model)
         updateState { copy(selectedModel = model) }
     }
 
@@ -48,39 +37,13 @@ class AiTextReviewViewModel(
         updateState { copy(menuInput = input, parsedData = parseReviewRequestUseCase(input)) }
     }
 
-    private fun initializeModel() {
-        viewModelScope.launch {
-            updateState { copy(isInitializingModel = true) }
-            initializeModelUseCase.initializeAll()
-                .onSuccess { status ->
-                    updateState {
-                        copy(
-                            modelStatus = status,
-                            isInitializingModel = false,
-                            isCloudMode = repository.isCloudApiAvailable,
-                        )
-                    }
-                }
-                .onFailure {
-                    updateState { copy(modelStatus = ModelStatus.UNAVAILABLE, isInitializingModel = false) }
-                }
-        }
-    }
-
-    private fun collectDownloadProgress() {
-        viewModelScope.launch {
-            repository.downloadProgress.collect { progress ->
-                updateState { copy(downloadProgress = progress) }
-            }
-        }
-    }
-
     private fun generateReview() {
         val input = state.value.menuInput.trim()
         if (input.isBlank()) return
+        val model = state.value.selectedModel
 
         viewModelScope.launch {
-            generateTextReviewUseCase(input)
+            generateTextReviewUseCase(model, input)
                 .flowOn(Dispatchers.IO)
                 .onStart { updateState { copy(isGenerating = true, generatedReview = "") } }
                 .catch { e ->

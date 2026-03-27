@@ -20,7 +20,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -90,18 +89,21 @@ private fun AiReviewContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        ModelStatusSection(state = state)
+        Text(
+            text = "Cloud - ${state.selectedModel.displayName}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.primary,
+        )
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        if (state.isCloudMode) {
-            ModelSelector(
-                selectedModel = state.selectedModel,
-                onModelSelected = onModelSelected,
-                enabled = !state.isGenerating,
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-        }
+        ModelSelector(
+            selectedModel = state.selectedModel,
+            onModelSelected = onModelSelected,
+            enabled = !state.isGenerating,
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
 
         MenuInputSection(
             menuInput = state.menuInput,
@@ -246,54 +248,6 @@ private fun ModelSelector(
                     ),
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun ModelStatusSection(state: AiTextReviewContract.State) {
-    when {
-        state.isInitializingModel -> {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    text = if (state.isDownloading) {
-                        "AI 모델 다운로드 중... ${(state.downloadProgress * 100).toInt()}%"
-                    } else {
-                        "AI 모델 준비 중..."
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                if (state.isDownloading) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    LinearProgressIndicator(
-                        progress = { state.downloadProgress },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 32.dp),
-                    )
-                }
-            }
-        }
-
-        state.isModelReady -> {
-            val modeLabel = if (state.isCloudMode) "Cloud - ${state.selectedModel.displayName}" else "On-device"
-            Text(
-                text = "AI 모델 준비 완료 ($modeLabel)",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
-
-        else -> {
-            Text(
-                text = "AI 모델을 사용할 수 없습니다",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-            )
         }
     }
 }

@@ -1,7 +1,6 @@
 package io.yogiyo.ohmyreviewer.ui.aitextreview
 
 import io.yogiyo.ohmyreviewer.data.model.GeminiModel
-import io.yogiyo.ohmyreviewer.data.model.ModelStatus
 import io.yogiyo.ohmyreviewer.data.model.ReviewRequestData
 import io.yogiyo.ohmyreviewer.ui.base.UiEffect
 import io.yogiyo.ohmyreviewer.ui.base.UiEvent
@@ -14,18 +13,12 @@ object AiTextReviewContract {
         val parsedData: ReviewRequestData? = null,
         val isGenerating: Boolean = false,
         val generatedReview: String = "",
-        val modelStatus: ModelStatus = ModelStatus.UNAVAILABLE,
-        val isInitializingModel: Boolean = false,
-        val downloadProgress: Float = 0f,
-        val isCloudMode: Boolean = false,
         val selectedModel: GeminiModel = GeminiModel.DEFAULT,
     ) : UiState {
         val hasInput: Boolean get() = menuInput.isNotBlank()
         val isJsonMode: Boolean get() = parsedData != null
         val hasGeneratedReview: Boolean get() = generatedReview.isNotEmpty()
-        val isModelReady: Boolean get() = modelStatus == ModelStatus.SUCCESS
-        val isDownloading: Boolean get() = downloadProgress in 0.01f..0.99f
-        val canGenerate: Boolean get() = hasInput && isModelReady && !isGenerating
+        val canGenerate: Boolean get() = hasInput && !isGenerating
     }
 
     sealed interface Event : UiEvent {
