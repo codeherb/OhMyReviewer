@@ -2,13 +2,9 @@ package io.yogiyo.ohmyreviewer.data.repository
 
 import io.yogiyo.ohmyreviewer.data.datasource.CloudMLDatasource
 import io.yogiyo.ohmyreviewer.data.datasource.MLDatasource
-import io.yogiyo.ohmyreviewer.data.model.ModelStatus
+import io.yogiyo.ohmyreviewer.data.model.GeminiModel
 import io.yogiyo.ohmyreviewer.data.model.PlatformImage
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
@@ -24,54 +20,43 @@ class MLRepositoryImplTest {
     }
 
     private class FakeMLDatasource(
-        private val contentResult: String = "generated content",
         private val imageDescriptionResult: String = "image description"
     ) : MLDatasource {
-        override val downloadProgress: StateFlow<Float> = MutableStateFlow(1f)
+        override val downloadProgress: kotlinx.coroutines.flow.StateFlow<Float> =
+            kotlinx.coroutines.flow.MutableStateFlow(0f)
 
-        override fun initialize(): Deferred<ModelStatus> =
-            CompletableDeferred(ModelStatus.READY)
-
-        override fun initializeImageDescription(): Deferred<ModelStatus> =
-            CompletableDeferred(ModelStatus.READY)
-
-        override fun generateContent(prompt: String): Flow<String> = flow {
-            emit(contentResult)
-        }
+        override fun initializeImageDescription(): kotlinx.coroutines.Deferred<io.yogiyo.ohmyreviewer.data.model.ModelStatus> =
+            kotlinx.coroutines.CompletableDeferred(io.yogiyo.ohmyreviewer.data.model.ModelStatus.SUCCESS)
 
         override fun generateImageDescription(image: PlatformImage): Flow<String> = flow {
             emit(imageDescriptionResult)
         }
-
-        override fun close(): Deferred<Unit> = CompletableDeferred(Unit)
     }
 
     private class FakeCloudMLDatasource(
         private val result: String? = null,
         private val error: Throwable? = null
     ) : CloudMLDatasource {
-        override fun generateImageDescription(image: PlatformImage): Flow<String> = flow {
+        override fun generateImageDescription(model: GeminiModel, image: PlatformImage): Flow<String> = flow {
             if (error != null) throw error
             emit(result ?: "cloud image description")
+        }
+
+        override fun generateTextReview(model: GeminiModel, prompt: String): Flow<String> = flow {
+            if (error != null) throw error
+            emit(result ?: "cloud text review")
+        }
+
+        override fun generateImageReview(model: GeminiModel, image: PlatformImage, prompt: String): Flow<String> = flow {
+            if (error != null) throw error
+            emit(result ?: "cloud image review")
         }
     }
 
     @Test
-    fun generateContent_delegatesToAiDatasource() = runTest {
+    fun generateImageDescription_delegatesToMLDatasource() = runTest {
         val repository = MLRepositoryImpl(
-            aiDatasource = FakeMLDatasource(contentResult = "test content"),
-            cloudDatasource = FakeCloudMLDatasource()
-        )
-
-        val result = repository.generateContent("prompt").toList()
-
-        assertEquals(listOf("test content"), result)
-    }
-
-    @Test
-    fun generateImageDescription_delegatesToAiDatasource() = runTest {
-        val repository = MLRepositoryImpl(
-            aiDatasource = FakeMLDatasource(imageDescriptionResult = "local description"),
+            datasource = FakeMLDatasource(imageDescriptionResult = "local description"),
             cloudDatasource = FakeCloudMLDatasource()
         )
 
@@ -83,11 +68,11 @@ class MLRepositoryImplTest {
     @Test
     fun generateCloudImageDescription_delegatesToCloudDatasource() = runTest {
         val repository = MLRepositoryImpl(
-            aiDatasource = FakeMLDatasource(),
+            datasource = FakeMLDatasource(),
             cloudDatasource = FakeCloudMLDatasource(result = "cloud description")
         )
 
-        val result = repository.generateCloudImageDescription(FakePlatformImage()).toList()
+        val result = repository.generateCloudImageDescription(GeminiModel.DEFAULT, FakePlatformImage()).toList()
 
         assertEquals(listOf("cloud description"), result)
     }
@@ -95,12 +80,36 @@ class MLRepositoryImplTest {
     @Test
     fun generateCloudImageDescription_propagatesError() = runTest {
         val repository = MLRepositoryImpl(
-            aiDatasource = FakeMLDatasource(),
+            datasource = FakeMLDatasource(),
             cloudDatasource = FakeCloudMLDatasource(error = RuntimeException("API error"))
         )
 
         assertFailsWith<RuntimeException> {
-            repository.generateCloudImageDescription(FakePlatformImage()).toList()
+            repository.generateCloudImageDescription(GeminiModel.DEFAULT, FakePlatformImage()).toList()
         }
+    }
+
+    @Test
+    fun generateTextReview_delegatesToCloudDatasource() = runTest {
+        val repository = MLRepositoryImpl(
+            datasource = FakeMLDatasource(),
+            cloudDatasource = FakeCloudMLDatasource(result = "text review")
+        )
+
+        val result = repository.generateTextReview(GeminiModel.DEFAULT, "prompt").toList()
+
+        assertEquals(listOf("text review"), result)
+    }
+
+    @Test
+    fun generateReview_delegatesToCloudDatasource() = runTest {
+        val repository = MLRepositoryImpl(
+            datasource = FakeMLDatasource(),
+            cloudDatasource = FakeCloudMLDatasource(result = "image review")
+        )
+
+        val result = repository.generateReview(GeminiModel.DEFAULT, FakePlatformImage(), "prompt").toList()
+
+        assertEquals(listOf("image review"), result)
     }
 }

@@ -5,6 +5,7 @@ import io.yogiyo.ohmyreviewer.data.datasource.remote.model.Content
 import io.yogiyo.ohmyreviewer.data.datasource.remote.model.GeminiRequest
 import io.yogiyo.ohmyreviewer.data.datasource.remote.model.InlineData
 import io.yogiyo.ohmyreviewer.data.datasource.remote.model.Part
+import io.yogiyo.ohmyreviewer.data.model.GeminiModel
 import io.yogiyo.ohmyreviewer.data.model.PlatformImage
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -16,11 +17,33 @@ class CloudMLDatasourceImpl(
 ) : CloudMLDatasource {
 
     @OptIn(ExperimentalEncodingApi::class)
-    override fun generateImageDescription(image: PlatformImage): Flow<String> = flow {
-        val imageBytes = image.toByteArray()
-        val base64Image = Base64.encode(imageBytes)
+    override fun generateImageDescription(model: GeminiModel, image: PlatformImage): Flow<String> = flow {
+        val request = buildImageRequest(image, IMAGE_DESCRIPTION_PROMPT)
+        emit(executeRequest(model, request))
+    }
 
-        val request = GeminiRequest(
+    override fun generateTextReview(model: GeminiModel, prompt: String): Flow<String> = flow {
+        val request = buildTextRequest(prompt)
+        emit(executeRequest(model, request))
+    }
+
+    @OptIn(ExperimentalEncodingApi::class)
+    override fun generateImageReview(model: GeminiModel, image: PlatformImage, prompt: String): Flow<String> = flow {
+        val request = buildImageRequest(image, prompt)
+        emit(executeRequest(model, request))
+    }
+
+    private fun buildTextRequest(prompt: String): GeminiRequest =
+        GeminiRequest(
+            contents = listOf(
+                Content(parts = listOf(Part(text = prompt)))
+            )
+        )
+
+    @OptIn(ExperimentalEncodingApi::class)
+    private fun buildImageRequest(image: PlatformImage, prompt: String): GeminiRequest {
+        val base64Image = Base64.encode(image.toByteArray())
+        return GeminiRequest(
             contents = listOf(
                 Content(
                     parts = listOf(
@@ -30,13 +53,15 @@ class CloudMLDatasourceImpl(
                                 data = base64Image
                             )
                         ),
-                        Part(text = IMAGE_DESCRIPTION_PROMPT)
+                        Part(text = prompt)
                     )
                 )
             )
         )
+    }
 
-        val response = geminiApiService.generateContent(request)
+    private suspend fun executeRequest(model: GeminiModel, request: GeminiRequest): String {
+        val response = geminiApiService.generateContent(model.modelId, request)
 
         val error = response.error
         if (error != null) {
@@ -46,15 +71,13 @@ class CloudMLDatasourceImpl(
             )
         }
 
-        val text = response.candidates
+        return response.candidates
             ?.firstOrNull()
             ?.content
             ?.parts
             ?.firstOrNull()
             ?.text
             ?: throw GeminiApiException(code = -1, message = "Empty response from Gemini API")
-
-        emit(text)
     }
 
     companion object {

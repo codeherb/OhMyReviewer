@@ -12,9 +12,8 @@ import io.yogiyo.ohmyreviewer.data.datasource.remote.model.GeminiResponse
 class GeminiApiService(
     private val httpClient: HttpClient,
     private val apiKey: String,
-    private val model: String = DEFAULT_MODEL
 ) {
-    suspend fun generateContent(request: GeminiRequest): GeminiResponse {
+    suspend fun generateContent(model: String, request: GeminiRequest): GeminiResponse {
         return httpClient.post("$BASE_URL/v1beta/models/$model:generateContent") {
             url {
                 parameters.append("key", apiKey)
@@ -26,6 +25,5 @@ class GeminiApiService(
 
     companion object {
         const val BASE_URL = "https://generativelanguage.googleapis.com"
-        const val DEFAULT_MODEL = "gemini-2.0-flash"
     }
 }
