@@ -40,7 +40,7 @@ enum class GeminiModel(
     );
 
     companion object {
-        val DEFAULT = GEMINI_2_5_FLASH_LITE
+        val DEFAULT = GEMINI_2_5_FLASH
     }
 }
 
