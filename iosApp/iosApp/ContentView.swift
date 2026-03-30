@@ -2,8 +2,31 @@ import SwiftUI
 import PhotosUI
 import Shared
 
+// MARK: - Question Data
+
+private struct ReviewQuestion {
+    let text: String
+    let icon: String
+    let category: String
+}
+
+private let kReviewQuestions: [ReviewQuestion] = [
+    .init(text: "맛있었나요?",            icon: "face.smiling.fill",      category: "맛"),
+    .init(text: "배불렀나요?",            icon: "fork.knife.circle.fill", category: "양"),
+    .init(text: "포장 상태는\n좋았나요?",  icon: "shippingbox.fill",        category: "포장상태"),
+    .init(text: "배달은\n제때 됐나요?",   icon: "bicycle",                category: "배달상태"),
+    .init(text: "추천하나요?",            icon: "hand.thumbsup.fill",     category: "총평"),
+]
+
 struct ContentView: View {
-    // MARK: - State
+
+    // MARK: - Step & Answer State
+
+    @State private var currentStep: Int = 0
+    @State private var answers: [Bool?] = Array(repeating: nil, count: kReviewQuestions.count)
+
+    // MARK: - Image & Review State
+
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImage: UIImage?
     @State private var isAnalyzing = false
@@ -12,33 +35,35 @@ struct ContentView: View {
     @State private var showAlert = false
     @State private var alertMessage = ""
 
+    // MARK: - Body
+
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // MARK: - Image Section
-                    imageSection
-
-                    // MARK: - Keywords Section
-                    if !extractedKeywords.isEmpty {
-                        keywordsSection
-                    }
-
-                    // MARK: - Review Section
-                    if selectedImage != nil {
-                        reviewSection
-                    }
-
-                    // MARK: - Action Buttons
-                    if !generatedReview.isEmpty {
-                        actionButtons
-                    }
-
-                    Spacer(minLength: 40)
+            Group {
+                if currentStep < kReviewQuestions.count {
+                    questionStepView
+                } else {
+                    imageAndReviewView
                 }
-                .padding()
             }
             .navigationTitle("OhMyReviewer")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                if currentStep > 0 {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button { goBack() } label: {
+                            Image(systemName: "chevron.left")
+                                .fontWeight(.semibold)
+                        }
+                    }
+                }
+                if currentStep >= kReviewQuestions.count {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("다시 시작") { restart() }
+                            .font(.subheadline)
+                    }
+                }
+            }
             .alert("알림", isPresented: $showAlert) {
                 Button("확인", role: .cancel) {}
             } message: {
@@ -47,11 +72,151 @@ struct ContentView: View {
         }
     }
 
+    // MARK: - Question Step View
+
+    private var questionStepView: some View {
+        VStack(spacing: 0) {
+            progressSection
+                .padding(.horizontal, 24)
+                .padding(.top, 24)
+
+            Spacer()
+
+            questionCard
+                .id(currentStep)
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .move(edge: .leading).combined(with: .opacity)
+                ))
+
+            Spacer()
+
+            answerButtons
+                .padding(.horizontal, 32)
+                .padding(.bottom, 52)
+        }
+    }
+
+    private var progressSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("\(currentStep + 1) / \(kReviewQuestions.count)")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color(.systemGray5))
+                    Capsule()
+                        .fill(Color.accentColor)
+                        .frame(
+                            width: geo.size.width * CGFloat(currentStep + 1) / CGFloat(kReviewQuestions.count)
+                        )
+                        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: currentStep)
+                }
+            }
+            .frame(height: 6)
+        }
+    }
+
+    private var questionCard: some View {
+        let question = kReviewQuestions[currentStep]
+        return VStack(spacing: 28) {
+            Image(systemName: question.icon)
+                .font(.system(size: 72))
+                .foregroundStyle(Color.accentColor)
+
+            Text(question.text)
+                .font(.system(size: 34, weight: .bold))
+                .multilineTextAlignment(.center)
+        }
+        .padding(40)
+    }
+
+    private var answerButtons: some View {
+        HStack(spacing: 16) {
+            Button { advance(with: false) } label: {
+                Text("아니오")
+                    .font(.title3.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 20)
+                    .background(Color(.systemGray5))
+                    .foregroundColor(.primary)
+                    .clipShape(RoundedRectangle(cornerRadius: 18))
+            }
+
+            Button { advance(with: true) } label: {
+                Text("예")
+                    .font(.title3.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 20)
+                    .background(Color.accentColor)
+                    .foregroundColor(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 18))
+            }
+        }
+    }
+
+    // MARK: - Image & Review View
+
+    private var imageAndReviewView: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                answerSummarySection
+                imageSection
+
+                if !extractedKeywords.isEmpty {
+                    keywordsSection
+                }
+
+                if selectedImage != nil {
+                    reviewSection
+                }
+
+                if !generatedReview.isEmpty {
+                    actionButtons
+                }
+
+                Spacer(minLength: 40)
+            }
+            .padding()
+        }
+    }
+
+    private var answerSummarySection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("내 평가")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            FlowLayout(spacing: 8) {
+                ForEach(kReviewQuestions.indices, id: \.self) { index in
+                    let question = kReviewQuestions[index]
+                    let answer = answers[index] ?? true
+                    HStack(spacing: 4) {
+                        Image(systemName: answer ? "checkmark.circle.fill" : "xmark.circle.fill")
+                            .font(.caption2)
+                        Text(question.category)
+                            .font(.caption)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(answer ? Color.green.opacity(0.12) : Color(.systemRed).opacity(0.08))
+                    .foregroundColor(answer ? .green : Color(.systemRed))
+                    .clipShape(Capsule())
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+    }
+
     // MARK: - Image Section
+
     private var imageSection: some View {
         VStack(spacing: 16) {
             if let image = selectedImage {
-                // 선택된 이미지 표시
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFit()
@@ -59,7 +224,6 @@ struct ContentView: View {
                     .cornerRadius(12)
                     .shadow(radius: 4)
 
-                // 이미지 변경 버튼
                 HStack(spacing: 12) {
                     PhotosPicker(selection: $selectedItem, matching: .images) {
                         Label("다른 사진 선택", systemImage: "photo.on.rectangle")
@@ -68,7 +232,7 @@ struct ContentView: View {
                     .buttonStyle(.bordered)
 
                     Button(role: .destructive) {
-                        clearAll()
+                        clearImageState()
                     } label: {
                         Label("삭제", systemImage: "trash")
                             .font(.subheadline)
@@ -76,7 +240,6 @@ struct ContentView: View {
                     .buttonStyle(.bordered)
                 }
             } else {
-                // 이미지 선택 영역
                 PhotosPicker(selection: $selectedItem, matching: .images) {
                     VStack(spacing: 16) {
                         Image(systemName: "photo.badge.plus")
@@ -98,7 +261,6 @@ struct ContentView: View {
                 }
             }
 
-            // 로딩 인디케이터
             if isAnalyzing {
                 HStack(spacing: 8) {
                     ProgressView()
@@ -117,6 +279,7 @@ struct ContentView: View {
     }
 
     // MARK: - Keywords Section
+
     private var keywordsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -145,6 +308,7 @@ struct ContentView: View {
     }
 
     // MARK: - Review Section
+
     private var reviewSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -172,7 +336,6 @@ struct ContentView: View {
                         .stroke(Color(.systemGray4), lineWidth: 1)
                 )
 
-            // 글자 수 표시
             HStack {
                 Spacer()
                 Text("\(generatedReview.count)자")
@@ -180,11 +343,8 @@ struct ContentView: View {
                     .foregroundColor(.secondary)
             }
 
-            // 재생성 버튼
             Button {
-                Task {
-                    await regenerateReview()
-                }
+                Task { await regenerateReview() }
             } label: {
                 Label("리뷰 다시 생성", systemImage: "arrow.clockwise")
                     .font(.subheadline)
@@ -199,9 +359,9 @@ struct ContentView: View {
     }
 
     // MARK: - Action Buttons
+
     private var actionButtons: some View {
         VStack(spacing: 12) {
-            // 복사 버튼
             Button {
                 copyToClipboard()
             } label: {
@@ -211,7 +371,6 @@ struct ContentView: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
 
-            // 공유 버튼
             ShareLink(item: generatedReview) {
                 Label("공유하기", systemImage: "square.and.arrow.up")
                     .frame(maxWidth: .infinity)
@@ -221,14 +380,48 @@ struct ContentView: View {
         }
     }
 
+    // MARK: - Navigation
+
+    private func advance(with answer: Bool) {
+        answers[currentStep] = answer
+        withAnimation(.easeInOut(duration: 0.3)) {
+            currentStep += 1
+        }
+    }
+
+    private func goBack() {
+        withAnimation(.easeInOut(duration: 0.25)) {
+            currentStep -= 1
+        }
+    }
+
+    private func restart() {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            currentStep = 0
+            answers = Array(repeating: nil, count: kReviewQuestions.count)
+            clearImageState()
+        }
+    }
+
+    // MARK: - Computed
+
+    private var userReviewAnswers: UserReviewAnswers {
+        UserReviewAnswers(
+            taste: answers[0] ?? true,
+            quantity: answers[1] ?? true,
+            packaging: answers[2] ?? true,
+            delivery: answers[3] ?? true,
+            recommend: answers[4] ?? true
+        )
+    }
+
     // MARK: - Methods
 
-    /// 이미지 로드 및 분석
     private func loadAndAnalyzeImage(from item: PhotosPickerItem?) async {
         print("### [ContentView] loadAndAnalyzeImage 시작")
-        guard let item = item else { 
+        guard let item = item else {
             print("### [ContentView] item이 nil - 종료")
-            return 
+            return
         }
         print("### [ContentView] item 있음 - 분석 시작")
 
@@ -238,7 +431,6 @@ struct ContentView: View {
 
         do {
             print("### [ContentView] 이미지 데이터 로드 시도...")
-            // 이미지 로드
             if let data = try await item.loadTransferable(type: Data.self),
                let image = UIImage(data: data) {
                 print("### [ContentView] 이미지 로드 성공! 크기: \(image.size)")
@@ -247,7 +439,6 @@ struct ContentView: View {
                     selectedImage = image
                 }
 
-                // 이미지 분석
                 print("### [ContentView] ImageAnalyzer.analyzeImage 호출 전")
                 let labels = await ImageAnalyzer.shared.analyzeImage(image)
                 print("### [ContentView] analyzeImage 완료 - labels: \(labels)")
@@ -266,8 +457,10 @@ struct ContentView: View {
                     extractedKeywords = keywords
                 }
 
-                // 리뷰 생성
-                let review = await ReviewService.shared.generateReview(keywords: keywords)
+                let review = await ReviewService.shared.generateReview(
+                    keywords: keywords,
+                    userAnswers: userReviewAnswers
+                )
 
                 await MainActor.run {
                     generatedReview = review
@@ -283,11 +476,13 @@ struct ContentView: View {
         }
     }
 
-    /// 리뷰 재생성
     private func regenerateReview() async {
         isAnalyzing = true
 
-        let review = await ReviewService.shared.generateReview(keywords: extractedKeywords)
+        let review = await ReviewService.shared.generateReview(
+            keywords: extractedKeywords,
+            userAnswers: userReviewAnswers
+        )
 
         await MainActor.run {
             generatedReview = review
@@ -295,15 +490,13 @@ struct ContentView: View {
         }
     }
 
-    /// 클립보드에 복사
     private func copyToClipboard() {
         UIPasteboard.general.string = generatedReview
         alertMessage = "리뷰가 클립보드에 복사되었습니다."
         showAlert = true
     }
 
-    /// 모든 상태 초기화
-    private func clearAll() {
+    private func clearImageState() {
         selectedItem = nil
         selectedImage = nil
         extractedKeywords = []
