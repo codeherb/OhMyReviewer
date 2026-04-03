@@ -12,10 +12,8 @@ import io.yogiyo.ohmyreviewer.data.model.GeminiModel
 import io.yogiyo.ohmyreviewer.domain.usecase.GenerateImageReviewUseCase
 import io.yogiyo.ohmyreviewer.ui.base.MviViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class AiImageReviewViewModel(
     private val contentResolver: ContentResolver,
@@ -64,15 +62,14 @@ class AiImageReviewViewModel(
         val model = state.value.selectedModel
 
         viewModelScope.launch {
-            generateImageReviewUseCase(model, AndroidPlatformImage.create(bitmap))
-                .flowOn(Dispatchers.IO)
-                .onStart { updateState { copy(isGenerating = true, generatedReview = "") } }
-                .catch { e ->
+            updateState { copy(isGenerating = true, generatedReview = "") }
+            runCatching { withContext(Dispatchers.IO) { generateImageReviewUseCase(model, AndroidPlatformImage.create(bitmap)) } }
+                .onSuccess { review ->
+                    updateState { copy(generatedReview = review, isGenerating = false) }
+                }
+                .onFailure { e ->
                     updateState { copy(isGenerating = false) }
                     sendEffect(AiImageReviewContract.Effect.ShowError("AI 이미지 리뷰 생성 실패: ${e.message}"))
-                }
-                .collect { review ->
-                    updateState { copy(generatedReview = review, isGenerating = false) }
                 }
         }
     }

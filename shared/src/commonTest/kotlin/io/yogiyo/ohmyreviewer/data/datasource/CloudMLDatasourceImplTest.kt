@@ -10,8 +10,8 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
 import io.yogiyo.ohmyreviewer.data.datasource.remote.GeminiApiService
+import io.yogiyo.ohmyreviewer.data.model.GeminiModel
 import io.yogiyo.ohmyreviewer.data.model.PlatformImage
-import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
@@ -59,9 +59,9 @@ class CloudMLDatasourceImplTest {
         val apiService = GeminiApiService(httpClient, apiKey = "test-key")
         val datasource = CloudMLDatasourceImpl(apiService)
 
-        val result = datasource.generateImageDescription(FakePlatformImage()).toList()
+        val result = datasource.generateImageDescription(GeminiModel.DEFAULT, FakePlatformImage())
 
-        assertEquals(listOf("이 이미지는 맛있는 비빔밥입니다."), result)
+        assertEquals("이 이미지는 맛있는 비빔밥입니다.", result)
     }
 
     @Test
@@ -77,7 +77,7 @@ class CloudMLDatasourceImplTest {
         val datasource = CloudMLDatasourceImpl(apiService)
 
         assertFailsWith<GeminiApiException> {
-            datasource.generateImageDescription(FakePlatformImage()).toList()
+            datasource.generateImageDescription(GeminiModel.DEFAULT, FakePlatformImage())
         }
     }
 
@@ -97,7 +97,7 @@ class CloudMLDatasourceImplTest {
         val datasource = CloudMLDatasourceImpl(apiService)
 
         val exception = assertFailsWith<GeminiApiException> {
-            datasource.generateImageDescription(FakePlatformImage()).toList()
+            datasource.generateImageDescription(GeminiModel.DEFAULT, FakePlatformImage())
         }
         assertEquals(400, exception.code)
         assertEquals("Invalid API key", exception.message)
@@ -116,7 +116,7 @@ class CloudMLDatasourceImplTest {
         val datasource = CloudMLDatasourceImpl(apiService)
 
         assertFailsWith<GeminiApiException> {
-            datasource.generateImageDescription(FakePlatformImage()).toList()
+            datasource.generateImageDescription(GeminiModel.DEFAULT, FakePlatformImage())
         }
     }
 
@@ -138,7 +138,7 @@ class CloudMLDatasourceImplTest {
         val apiService = GeminiApiService(httpClient, apiKey = "test-key")
         val datasource = CloudMLDatasourceImpl(apiService)
 
-        datasource.generateImageDescription(FakePlatformImage()).toList()
+        datasource.generateImageDescription(GeminiModel.DEFAULT, FakePlatformImage())
 
         assertTrue(capturedBody != null)
     }
