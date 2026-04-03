@@ -112,8 +112,6 @@ class ImageViewModel(
         viewModelScope.launch {
             updateState { copy(isDescribing = true, errorMessage = null, analysisResult = ImageMeta.None) }
 
-            mlDatasource.initializeImageDescription().await()
-
             try {
                 mlDatasource.generateImageDescription(AndroidPlatformImage.create(currentBitmap))
                     .map {

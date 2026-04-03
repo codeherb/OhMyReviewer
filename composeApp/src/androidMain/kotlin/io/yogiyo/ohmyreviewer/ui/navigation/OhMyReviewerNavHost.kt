@@ -15,6 +15,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import io.yogiyo.ohmyreviewer.ui.aiimagereview.AiImageReviewScreen
+import io.yogiyo.ohmyreviewer.ui.aitextreview.AiTextReviewScreen
 import io.yogiyo.ohmyreviewer.ui.image.ImageScreen
 import io.yogiyo.ohmyreviewer.ui.review.ReviewScreen
 
@@ -38,6 +40,14 @@ fun OhMyReviewerNavHost(
 
             composable(Route.REVIEW) {
                 ReviewScreen()
+            }
+
+            composable(Route.AI_TEXT_REVIEW) {
+                AiTextReviewScreen()
+            }
+
+            composable(Route.AI_IMAGE_REVIEW) {
+                AiImageReviewScreen()
             }
         }
     }

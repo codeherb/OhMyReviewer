@@ -1,4 +1,3 @@
-import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -22,7 +21,6 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation(libs.google.mlkit.imageLabeling)
             implementation(libs.google.mlkit.imageDescription)
-            implementation(libs.google.mlkit.prompt)
             implementation(libs.koin.android)
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)

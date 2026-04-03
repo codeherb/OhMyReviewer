@@ -3,20 +3,15 @@ package io.yogiyo.ohmyreviewer.data.datasource
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.util.Log
 import com.google.mlkit.genai.common.DownloadCallback
-import com.google.mlkit.genai.common.DownloadStatus
 import com.google.mlkit.genai.common.FeatureStatus
 import com.google.mlkit.genai.common.GenAiException
 import com.google.mlkit.genai.imagedescription.ImageDescriber
 import com.google.mlkit.genai.imagedescription.ImageDescriberOptions
 import com.google.mlkit.genai.imagedescription.ImageDescription
 import com.google.mlkit.genai.imagedescription.ImageDescriptionRequest
-import com.google.mlkit.genai.prompt.Generation
-import com.google.mlkit.genai.prompt.GenerativeModel
 import io.yogiyo.ohmyreviewer.data.model.ModelStatus
 import io.yogiyo.ohmyreviewer.data.model.PlatformImage
-import kotlin.coroutines.resume
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
@@ -26,166 +21,87 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.last
-import kotlinx.coroutines.guava.await
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 
 class MLDatasourceImpl(
     private val context: Context,
     private val externalScope: CoroutineScope,
-): MLDatasource {
+) : MLDatasource {
 
     private var imageDescriber: ImageDescriber? = null
-
-    private var generativeModel: GenerativeModel? = null
-
     private var totalBytesToDownload: Long = 0L
     private val _downloadProgress = MutableStateFlow(0f)
     override val downloadProgress: StateFlow<Float> = _downloadProgress.asStateFlow()
 
-    private fun prepareGenerativeModel(): Flow<ModelStatus> = flow {
-        val status = generativeModel?.checkStatus() ?: return@flow
+    private fun ensureImageDescriber(): ImageDescriber {
+        return imageDescriber ?: ImageDescription.getClient(
+            ImageDescriberOptions.builder(context).build()
+        ).also { imageDescriber = it }
+    }
 
-        when (status) {
-            FeatureStatus.UNAVAILABLE,
-            FeatureStatus.DOWNLOADING ->
-                emit(ModelStatus.UNAVAILABLE)
-            FeatureStatus.AVAILABLE ->
-                emit(ModelStatus.READY)
-            FeatureStatus.DOWNLOADABLE -> {
-                generativeModel?.download()?.collect { downloadStatus ->
-                    when (downloadStatus) {
-                        DownloadStatus.DownloadCompleted -> emit(ModelStatus.READY)
-                        is DownloadStatus.DownloadFailed -> emit(ModelStatus.UNAVAILABLE)
-                        else -> { /* DownloadStarted, DownloadProgress */ }
-                    }
-                } ?: emit(ModelStatus.UNAVAILABLE)
+    override fun initializeImageDescription(): Deferred<ModelStatus> = externalScope.async {
+        val client = ensureImageDescriber()
+
+        val featureStatus = runCatching {
+            suspendCancellableCoroutine<Int> { cont ->
+                val future = client.checkFeatureStatus()
+                future.addListener({ cont.resume(future.get()) }, { it.run() })
             }
+        }.getOrElse {
+            return@async ModelStatus.UNAVAILABLE
+        }
+
+        when (featureStatus) {
+            FeatureStatus.AVAILABLE -> ModelStatus.SUCCESS
+            FeatureStatus.DOWNLOADABLE, FeatureStatus.DOWNLOADING -> downloadImageDescription(client)
+            else -> ModelStatus.UNAVAILABLE
         }
     }
 
-    private suspend fun prepareImageDescription(): ModelStatus {
-        val client = imageDescriber ?: return ModelStatus.UNAVAILABLE
+    private suspend fun downloadImageDescription(client: ImageDescriber): ModelStatus {
+        _downloadProgress.value = 0.01f
+        return suspendCancellableCoroutine { continuation ->
+            client.downloadFeature(object : DownloadCallback {
+                override fun onDownloadStarted(bytesToDownload: Long) {
+                    totalBytesToDownload = bytesToDownload
+                }
 
-        return try {
-            val featureStatus = client.checkFeatureStatus().await()
+                override fun onDownloadProgress(totalBytesDownloaded: Long) {
+                    if (totalBytesToDownload > 0) {
+                        _downloadProgress.value =
+                            (totalBytesDownloaded.toFloat() / totalBytesToDownload).coerceIn(0.01f, 0.99f)
+                    }
+                }
 
-            when (featureStatus) {
-                FeatureStatus.UNAVAILABLE -> ModelStatus.UNAVAILABLE
-                FeatureStatus.AVAILABLE -> ModelStatus.READY
-                FeatureStatus.DOWNLOADABLE, FeatureStatus.DOWNLOADING -> {
+                override fun onDownloadCompleted() {
+                    _downloadProgress.value = 1f
+                    if (continuation.isActive) continuation.resume(ModelStatus.SUCCESS)
+                }
+
+                override fun onDownloadFailed(e: GenAiException) {
                     _downloadProgress.value = 0f
-                    suspendCancellableCoroutine { continuation ->
-                        client.downloadFeature(object : DownloadCallback {
-                            override fun onDownloadStarted(bytesToDownload: Long) {
-                                totalBytesToDownload = bytesToDownload
-                                _downloadProgress.value = 0.01f
-                            }
-
-                            override fun onDownloadFailed(e: GenAiException) {
-                                Log.e(TAG, "ImageDescription download failed", e)
-                                _downloadProgress.value = 0f
-                                if (continuation.isActive) {
-                                    continuation.resume(ModelStatus.UNAVAILABLE)
-                                }
-                            }
-
-                            override fun onDownloadProgress(totalBytesDownloaded: Long) {
-                                if (totalBytesToDownload > 0) {
-                                    _downloadProgress.value = (totalBytesDownloaded.toFloat() / totalBytesToDownload).coerceIn(0.01f, 0.99f)
-                                }
-                            }
-
-                            override fun onDownloadCompleted() {
-                                _downloadProgress.value = 1f
-                                if (continuation.isActive) {
-                                    continuation.resume(ModelStatus.READY)
-                                }
-                            }
-                        })
-                    }
+                    if (continuation.isActive) continuation.resume(ModelStatus.UNAVAILABLE)
                 }
-                else -> ModelStatus.UNAVAILABLE
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "prepareImageDescription error", e)
-            ModelStatus.UNAVAILABLE
+            })
         }
     }
 
-    override fun initialize(): Deferred<ModelStatus> {
-        return externalScope.async {
-            if (imageDescriber == null) {
-                val options = ImageDescriberOptions.builder(context).build()
-                imageDescriber = ImageDescription.getClient(options)
-            }
-            if (generativeModel == null) {
-                generativeModel = Generation.getClient()
-            }
-
-            val generativeModelStatus = prepareGenerativeModel().last()
-            val imageDescriptionStatus = prepareImageDescription()
-            val result = generativeModelStatus == ModelStatus.READY && imageDescriptionStatus == ModelStatus.READY
-            return@async if (result) ModelStatus.SUCCESS else ModelStatus.UNAVAILABLE
+    override fun generateImageDescription(image: PlatformImage): Flow<String> = callbackFlow {
+        val bitmap = when (val raw = image.image) {
+            is Bitmap -> raw
+            is ByteArray -> BitmapFactory.decodeByteArray(raw, 0, raw.size)
+            else -> throw IllegalArgumentException("Unsupported image type: ${raw::class}")
         }
-    }
 
-    override fun initializeImageDescription(): Deferred<ModelStatus> {
-        return externalScope.async {
-            if (imageDescriber == null) {
-                val options = ImageDescriberOptions.builder(context).build()
-                imageDescriber = ImageDescription.getClient(options)
-            }
+        val client = ensureImageDescriber()
+        val request = ImageDescriptionRequest.builder(bitmap).build()
 
-            val result = prepareImageDescription()
-            return@async if (result == ModelStatus.READY) ModelStatus.SUCCESS else ModelStatus.UNAVAILABLE
+        client.runInference(request) { outputText ->
+            trySend(outputText)
+            channel.close()
         }
-    }
 
-    override fun generateContent(prompt: String): Flow<String> {
-        return flow {
-            generativeModel?.generateContent(prompt)?.let { response ->
-                emit(response.candidates.first().text)
-            }
-        }
-    }
-
-    override fun generateImageDescription(image: PlatformImage): Flow<String> {
-        return callbackFlow {
-            val bitmap = when(image.image) {
-                is Bitmap -> image.image as Bitmap
-                is ByteArray -> {
-                    val byteArray = image.image as ByteArray
-                    BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
-                }
-                else -> throw IllegalArgumentException()
-            }
-            val imageDescriptionRequest = ImageDescriptionRequest
-                .builder(bitmap)
-                .build()
-
-            imageDescriber?.runInference(imageDescriptionRequest) { outputText ->
-                trySend(outputText)
-                channel.close()
-            }?.await() ?: run {
-                channel.close()
-            }
-
-            awaitClose()
-        }
-    }
-
-    override fun close(): Deferred<Unit> {
-        return externalScope.async {
-            imageDescriber?.close()
-            generativeModel?.close()
-            imageDescriber = null
-            generativeModel = null
-        }
-    }
-
-    companion object {
-        const val TAG = "MLDatasourceImpl"
+        awaitClose()
     }
 }
