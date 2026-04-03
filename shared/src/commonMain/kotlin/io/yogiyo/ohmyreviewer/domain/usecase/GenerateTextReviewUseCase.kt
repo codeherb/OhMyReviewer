@@ -10,9 +10,9 @@ class GenerateTextReviewUseCase(
     private val repository: MLRepository,
 ) {
     operator fun invoke(model: GeminiModel, input: String): Flow<String> {
-        val prompt = runCatching { ReviewRequestData.fromJson(input) }
-            .map { PromptBuilder.buildStructuredReviewPrompt(it) }
-            .getOrElse { PromptBuilder.buildFreeTextReviewPrompt(input) }
+        val prompt = ReviewRequestData.fromJson(input)
+            ?.let { PromptBuilder.buildStructuredReviewPrompt(it) }
+            ?: PromptBuilder.buildFreeTextReviewPrompt(input)
         return repository.generateTextReview(model, prompt)
     }
 }
