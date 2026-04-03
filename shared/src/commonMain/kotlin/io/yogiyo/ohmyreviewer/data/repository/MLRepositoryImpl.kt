@@ -12,15 +12,15 @@ class MLRepositoryImpl(
     private val cloudDatasource: CloudMLDatasource,
 ) : MLRepository {
 
-    override fun generateCloudImageDescription(model: GeminiModel, image: PlatformImage): Flow<String> =
+    override suspend fun generateCloudImageDescription(model: GeminiModel, image: PlatformImage): String =
         cloudDatasource.generateImageDescription(model, image)
 
     override fun generateImageDescription(image: PlatformImage): Flow<String> =
         datasource.generateImageDescription(image)
 
-    override fun generateReview(model: GeminiModel, image: PlatformImage, prompt: String): Flow<String> =
+    override suspend fun generateReview(model: GeminiModel, image: PlatformImage, prompt: String): String =
         cloudDatasource.generateImageReview(model, image, prompt)
 
-    override fun generateTextReview(model: GeminiModel, prompt: String): Flow<String> =
+    override suspend fun generateTextReview(model: GeminiModel, prompt: String): String =
         cloudDatasource.generateTextReview(model, prompt)
 }

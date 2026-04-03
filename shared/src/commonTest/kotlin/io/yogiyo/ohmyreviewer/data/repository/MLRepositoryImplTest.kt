@@ -37,19 +37,19 @@ class MLRepositoryImplTest {
         private val result: String? = null,
         private val error: Throwable? = null
     ) : CloudMLDatasource {
-        override fun generateImageDescription(model: GeminiModel, image: PlatformImage): Flow<String> = flow {
+        override suspend fun generateImageDescription(model: GeminiModel, image: PlatformImage): String {
             if (error != null) throw error
-            emit(result ?: "cloud image description")
+            return result ?: "cloud image description"
         }
 
-        override fun generateTextReview(model: GeminiModel, prompt: String): Flow<String> = flow {
+        override suspend fun generateTextReview(model: GeminiModel, prompt: String): String {
             if (error != null) throw error
-            emit(result ?: "cloud text review")
+            return result ?: "cloud text review"
         }
 
-        override fun generateImageReview(model: GeminiModel, image: PlatformImage, prompt: String): Flow<String> = flow {
+        override suspend fun generateImageReview(model: GeminiModel, image: PlatformImage, prompt: String): String {
             if (error != null) throw error
-            emit(result ?: "cloud image review")
+            return result ?: "cloud image review"
         }
     }
 
@@ -72,9 +72,9 @@ class MLRepositoryImplTest {
             cloudDatasource = FakeCloudMLDatasource(result = "cloud description")
         )
 
-        val result = repository.generateCloudImageDescription(GeminiModel.DEFAULT, FakePlatformImage()).toList()
+        val result = repository.generateCloudImageDescription(GeminiModel.DEFAULT, FakePlatformImage())
 
-        assertEquals(listOf("cloud description"), result)
+        assertEquals("cloud description", result)
     }
 
     @Test
@@ -85,7 +85,7 @@ class MLRepositoryImplTest {
         )
 
         assertFailsWith<RuntimeException> {
-            repository.generateCloudImageDescription(GeminiModel.DEFAULT, FakePlatformImage()).toList()
+            repository.generateCloudImageDescription(GeminiModel.DEFAULT, FakePlatformImage())
         }
     }
 
@@ -96,9 +96,9 @@ class MLRepositoryImplTest {
             cloudDatasource = FakeCloudMLDatasource(result = "text review")
         )
 
-        val result = repository.generateTextReview(GeminiModel.DEFAULT, "prompt").toList()
+        val result = repository.generateTextReview(GeminiModel.DEFAULT, "prompt")
 
-        assertEquals(listOf("text review"), result)
+        assertEquals("text review", result)
     }
 
     @Test
@@ -108,8 +108,8 @@ class MLRepositoryImplTest {
             cloudDatasource = FakeCloudMLDatasource(result = "image review")
         )
 
-        val result = repository.generateReview(GeminiModel.DEFAULT, FakePlatformImage(), "prompt").toList()
+        val result = repository.generateReview(GeminiModel.DEFAULT, FakePlatformImage(), "prompt")
 
-        assertEquals(listOf("image review"), result)
+        assertEquals("image review", result)
     }
 }

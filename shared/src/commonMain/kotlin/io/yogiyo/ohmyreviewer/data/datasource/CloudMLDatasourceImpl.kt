@@ -7,8 +7,6 @@ import io.yogiyo.ohmyreviewer.data.datasource.remote.model.InlineData
 import io.yogiyo.ohmyreviewer.data.datasource.remote.model.Part
 import io.yogiyo.ohmyreviewer.data.model.GeminiModel
 import io.yogiyo.ohmyreviewer.data.model.PlatformImage
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
@@ -17,20 +15,20 @@ class CloudMLDatasourceImpl(
 ) : CloudMLDatasource {
 
     @OptIn(ExperimentalEncodingApi::class)
-    override fun generateImageDescription(model: GeminiModel, image: PlatformImage): Flow<String> = flow {
+    override suspend fun generateImageDescription(model: GeminiModel, image: PlatformImage): String {
         val request = buildImageRequest(image, IMAGE_DESCRIPTION_PROMPT)
-        emit(executeRequest(model, request))
+        return executeRequest(model, request)
     }
 
-    override fun generateTextReview(model: GeminiModel, prompt: String): Flow<String> = flow {
+    override suspend fun generateTextReview(model: GeminiModel, prompt: String): String {
         val request = buildTextRequest(prompt)
-        emit(executeRequest(model, request))
+        return executeRequest(model, request)
     }
 
     @OptIn(ExperimentalEncodingApi::class)
-    override fun generateImageReview(model: GeminiModel, image: PlatformImage, prompt: String): Flow<String> = flow {
+    override suspend fun generateImageReview(model: GeminiModel, image: PlatformImage, prompt: String): String {
         val request = buildImageRequest(image, prompt)
-        emit(executeRequest(model, request))
+        return executeRequest(model, request)
     }
 
     private fun buildTextRequest(prompt: String): GeminiRequest =
