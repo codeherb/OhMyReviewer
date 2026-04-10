@@ -30,10 +30,11 @@ struct ContentView: View {
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImage: UIImage?
     @State private var isAnalyzing = false
-    @State private var extractedKeywords: [String] = []
     @State private var generatedReview: String = ""
     @State private var showAlert = false
     @State private var alertMessage = ""
+
+    private let koinHelper = KoinHelper()
 
     // MARK: - Body
 
@@ -164,10 +165,6 @@ struct ContentView: View {
                 answerSummarySection
                 imageSection
 
-                if !extractedKeywords.isEmpty {
-                    keywordsSection
-                }
-
                 if selectedImage != nil {
                     reviewSection
                 }
@@ -278,35 +275,6 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Keywords Section
-
-    private var keywordsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "tag.fill")
-                    .foregroundColor(.accentColor)
-                Text("추출된 키워드")
-                    .font(.headline)
-            }
-
-            FlowLayout(spacing: 8) {
-                ForEach(extractedKeywords, id: \.self) { keyword in
-                    Text(keyword)
-                        .font(.caption)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(Color.accentColor.opacity(0.1))
-                        .foregroundColor(.accentColor)
-                        .cornerRadius(16)
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
-    }
-
     // MARK: - Review Section
 
     private var reviewSection: some View {
@@ -319,11 +287,9 @@ struct ContentView: View {
 
                 Spacer()
 
-                if ReviewService.shared.isFoundationModelsSupported {
-                    Label("AI", systemImage: "sparkles")
-                        .font(.caption)
-                        .foregroundColor(.purple)
-                }
+                Label("Gemini AI", systemImage: "sparkles")
+                    .font(.caption)
+                    .foregroundColor(.purple)
             }
 
             TextEditor(text: $generatedReview)
@@ -350,7 +316,7 @@ struct ContentView: View {
                     .font(.subheadline)
             }
             .buttonStyle(.bordered)
-            .disabled(isAnalyzing || extractedKeywords.isEmpty)
+            .disabled(isAnalyzing || selectedImage == nil)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
@@ -403,90 +369,67 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Computed
-
-    private var userReviewAnswers: UserReviewAnswers {
-        UserReviewAnswers(
-            taste: answers[0] ?? true,
-            quantity: answers[1] ?? true,
-            packaging: answers[2] ?? true,
-            delivery: answers[3] ?? true,
-            recommend: answers[4] ?? true
-        )
-    }
-
     // MARK: - Methods
 
     private func loadAndAnalyzeImage(from item: PhotosPickerItem?) async {
-        print("### [ContentView] loadAndAnalyzeImage 시작")
-        guard let item = item else {
-            print("### [ContentView] item이 nil - 종료")
-            return
-        }
-        print("### [ContentView] item 있음 - 분석 시작")
+        guard let item = item else { return }
 
-        isAnalyzing = true
-        extractedKeywords = []
-        generatedReview = ""
+        await MainActor.run {
+            isAnalyzing = true
+            generatedReview = ""
+        }
 
         do {
-            print("### [ContentView] 이미지 데이터 로드 시도...")
-            if let data = try await item.loadTransferable(type: Data.self),
-               let image = UIImage(data: data) {
-                print("### [ContentView] 이미지 로드 성공! 크기: \(image.size)")
-
+            guard let data = try await item.loadTransferable(type: Data.self),
+                  let image = UIImage(data: data) else {
                 await MainActor.run {
-                    selectedImage = image
-                }
-
-                print("### [ContentView] ImageAnalyzer.analyzeImage 호출 전")
-                let labels = await ImageAnalyzer.shared.analyzeImage(image)
-                print("### [ContentView] analyzeImage 완료 - labels: \(labels)")
-                let keywords: [String]
-                #if canImport(FoundationModels)
-                if #available(iOS 26, *) {
-                    keywords = await ImageAnalyzer.shared.enrichKeywords(labels: labels)
-                } else {
-                    keywords = labels
-                }
-                #else
-                keywords = labels
-                #endif
-
-                await MainActor.run {
-                    extractedKeywords = keywords
-                }
-
-                let review = await ReviewService.shared.generateReview(
-                    keywords: keywords,
-                    userAnswers: userReviewAnswers
-                )
-
-                await MainActor.run {
-                    generatedReview = review
                     isAnalyzing = false
+                    alertMessage = "이미지를 불러올 수 없습니다."
+                    showAlert = true
                 }
+                return
+            }
+
+            await MainActor.run {
+                selectedImage = image
+            }
+
+            print("### [ContentView] Gemini 리뷰 생성 시작")
+            let review = try await koinHelper.generateImageReview(image: image, model: koinHelper.defaultModel)
+            print("### [ContentView] Gemini 리뷰 생성 완료: \(review.prefix(50))...")
+
+            await MainActor.run {
+                generatedReview = review
+                isAnalyzing = false
             }
         } catch {
+            print("### [ContentView] 에러: \(error)")
             await MainActor.run {
                 isAnalyzing = false
-                alertMessage = "이미지를 불러오는데 실패했습니다."
+                alertMessage = "리뷰 생성에 실패했습니다: \(error.localizedDescription)"
                 showAlert = true
             }
         }
     }
 
     private func regenerateReview() async {
+        guard let image = selectedImage else { return }
+
         isAnalyzing = true
 
-        let review = await ReviewService.shared.generateReview(
-            keywords: extractedKeywords,
-            userAnswers: userReviewAnswers
-        )
+        do {
+            let review = try await koinHelper.generateImageReview(image: image, model: koinHelper.defaultModel)
 
-        await MainActor.run {
-            generatedReview = review
-            isAnalyzing = false
+            await MainActor.run {
+                generatedReview = review
+                isAnalyzing = false
+            }
+        } catch {
+            await MainActor.run {
+                isAnalyzing = false
+                alertMessage = "리뷰 생성에 실패했습니다: \(error.localizedDescription)"
+                showAlert = true
+            }
         }
     }
 
@@ -499,7 +442,6 @@ struct ContentView: View {
     private func clearImageState() {
         selectedItem = nil
         selectedImage = nil
-        extractedKeywords = []
         generatedReview = ""
     }
 }
