@@ -7,10 +7,8 @@ import io.yogiyo.ohmyreviewer.domain.usecase.GenerateTextReviewUseCase
 import io.yogiyo.ohmyreviewer.domain.usecase.ParseReviewRequestUseCase
 import io.yogiyo.ohmyreviewer.ui.base.MviViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class AiTextReviewViewModel(
     private val generateTextReviewUseCase: GenerateTextReviewUseCase,
@@ -43,16 +41,15 @@ class AiTextReviewViewModel(
         val model = state.value.selectedModel
 
         viewModelScope.launch {
-            generateTextReviewUseCase(model, input)
-                .flowOn(Dispatchers.IO)
-                .onStart { updateState { copy(isGenerating = true, generatedReview = "") } }
-                .catch { e ->
-                    updateState { copy(isGenerating = false) }
-                    sendEffect(AiTextReviewContract.Effect.ShowError("AI 리뷰 생성 실패: ${e.message}"))
-                }
-                .collect { review ->
+            updateState { copy(isGenerating = true, generatedReview = "") }
+            runCatching { withContext(Dispatchers.IO) { generateTextReviewUseCase(model, input) } }
+                .onSuccess { review ->
                     updateState { copy(generatedReview = review, isGenerating = false) }
                     reviewTextFieldState.edit { replace(0, length, review) }
+                }
+                .onFailure { e ->
+                    updateState { copy(isGenerating = false) }
+                    sendEffect(AiTextReviewContract.Effect.ShowError("AI 리뷰 생성 실패: ${e.message}"))
                 }
         }
     }

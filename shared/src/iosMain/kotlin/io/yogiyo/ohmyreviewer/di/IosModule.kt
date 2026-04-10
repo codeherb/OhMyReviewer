@@ -2,6 +2,7 @@ package io.yogiyo.ohmyreviewer.di
 
 import io.yogiyo.ohmyreviewer.data.datasource.MLDatasource
 import io.yogiyo.ohmyreviewer.data.datasource.MLDatasourceImpl
+
 import io.yogiyo.ohmyreviewer.data.model.GeminiModel
 import io.yogiyo.ohmyreviewer.data.model.IOSPlatformImage
 import io.yogiyo.ohmyreviewer.data.model.ReviewRequestData
@@ -13,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import io.yogiyo.ohmyreviewer.domain.repository.MLRepository
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.context.startKoin
@@ -30,6 +32,8 @@ fun initKoin() {
 }
 
 class KoinHelper : KoinComponent {
+
+    val aiRepository: MLRepository by inject()
     private val generateImageReviewUseCase: GenerateImageReviewUseCase by inject()
     private val generateImageDescriptionUseCase: GenerateImageDescriptionUseCase by inject()
     private val generateTextReviewUseCase: GenerateTextReviewUseCase by inject()
@@ -43,7 +47,7 @@ class KoinHelper : KoinComponent {
     suspend fun generateImageReview(image: UIImage, model: GeminiModel = GeminiModel.DEFAULT): String =
         withContext(Dispatchers.IO) {
             val platformImage = IOSPlatformImage(image)
-            generateImageReviewUseCase(model, platformImage).first()
+            generateImageReviewUseCase(model, platformImage)
         }
 
     @Throws(Exception::class)
@@ -56,7 +60,7 @@ class KoinHelper : KoinComponent {
     @Throws(Exception::class)
     suspend fun generateTextReview(input: String, model: GeminiModel = GeminiModel.DEFAULT): String =
         withContext(Dispatchers.IO) {
-            generateTextReviewUseCase(model, input).first()
+            generateTextReviewUseCase(model, input)
         }
 
     fun parseReviewRequest(input: String): ReviewRequestData? {
