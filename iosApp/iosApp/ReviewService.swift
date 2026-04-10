@@ -52,7 +52,51 @@ class ReviewService {
         }
     }
 
+    /// Cloud ML 이미지 설명과 사용자 답변을 결합하여 리뷰를 생성합니다
+    func generateReview(imageDescription: String, userAnswers: UserReviewAnswers) async -> String {
+        if #available(iOS 26, *) {
+#if canImport(FoundationModels)
+            return await generateWithFoundationModels(imageDescription: imageDescription, userAnswers: userAnswers)
+#else
+            return generateWithTemplate(keywords: [], userAnswers: userAnswers)
+#endif
+        } else {
+            return generateWithTemplate(keywords: [], userAnswers: userAnswers)
+        }
+    }
+
     // MARK: - Private Methods
+
+    @available(iOS 26, *)
+    private func generateWithFoundationModels(imageDescription: String, userAnswers: UserReviewAnswers) async -> String {
+#if canImport(FoundationModels)
+        do {
+            let session = LanguageModelSession()
+            let prompt = """
+            다음은 배달 음식 사진을 AI가 분석한 설명입니다:
+            \(imageDescription)
+
+            그리고 고객의 경험은 다음과 같습니다:
+            \(userAnswers.toDescription())
+
+            위 정보를 바탕으로 배달앱 리뷰를 작성해주세요.
+
+            작성 방법:
+            - 이미지 설명에서 음식명과 특징을 파악해 첫 문장에 자연스럽게 포함해주세요
+            - 고객 경험(맛, 양, 포장, 배달, 총평)을 하나의 흐름으로 녹여주세요
+            - 긍정/부정이 섞여 있다면 솔직하게 표현해주세요
+            - 2-3문장, 100-150자, 친근한 말투로 작성해주세요
+            - 리뷰만 출력해주세요
+            """
+            let response = try await session.respond(to: prompt)
+            return response.content
+        } catch {
+            return generateWithTemplate(keywords: [], userAnswers: userAnswers)
+        }
+#else
+        return generateWithTemplate(keywords: [], userAnswers: userAnswers)
+#endif
+    }
 
     @available(iOS 26, *)
     private func generateWithFoundationModels(keywords: [String], userAnswers: UserReviewAnswers) async -> String {

@@ -30,6 +30,7 @@ struct ContentView: View {
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImage: UIImage?
     @State private var isAnalyzing = false
+    @State private var imageDescription: String = ""
     @State private var extractedKeywords: [String] = []
     @State private var generatedReview: String = ""
     @State private var showAlert = false
@@ -439,28 +440,37 @@ struct ContentView: View {
                     selectedImage = image
                 }
 
-                print("### [ContentView] ImageAnalyzer.analyzeImage 호출 전")
                 let labels = await ImageAnalyzer.shared.analyzeImage(image)
-                print("### [ContentView] analyzeImage 완료 - labels: \(labels)")
-                let keywords: [String]
+                let description = labels.first ?? ""
+
+                let displayKeywords: [String]
                 #if canImport(FoundationModels)
                 if #available(iOS 26, *) {
-                    keywords = await ImageAnalyzer.shared.enrichKeywords(labels: labels)
+                    displayKeywords = await ImageAnalyzer.shared.enrichKeywords(labels: labels)
                 } else {
-                    keywords = labels
+                    displayKeywords = labels
                 }
                 #else
-                keywords = labels
+                displayKeywords = labels
                 #endif
 
                 await MainActor.run {
-                    extractedKeywords = keywords
+                    imageDescription = description
+                    extractedKeywords = displayKeywords
                 }
 
-                let review = await ReviewService.shared.generateReview(
-                    keywords: keywords,
-                    userAnswers: userReviewAnswers
-                )
+                let review: String
+                if description.isEmpty {
+                    review = await ReviewService.shared.generateReview(
+                        keywords: displayKeywords,
+                        userAnswers: userReviewAnswers
+                    )
+                } else {
+                    review = await ReviewService.shared.generateReview(
+                        imageDescription: description,
+                        userAnswers: userReviewAnswers
+                    )
+                }
 
                 await MainActor.run {
                     generatedReview = review
@@ -479,10 +489,18 @@ struct ContentView: View {
     private func regenerateReview() async {
         isAnalyzing = true
 
-        let review = await ReviewService.shared.generateReview(
-            keywords: extractedKeywords,
-            userAnswers: userReviewAnswers
-        )
+        let review: String
+        if imageDescription.isEmpty {
+            review = await ReviewService.shared.generateReview(
+                keywords: extractedKeywords,
+                userAnswers: userReviewAnswers
+            )
+        } else {
+            review = await ReviewService.shared.generateReview(
+                imageDescription: imageDescription,
+                userAnswers: userReviewAnswers
+            )
+        }
 
         await MainActor.run {
             generatedReview = review
@@ -499,6 +517,7 @@ struct ContentView: View {
     private func clearImageState() {
         selectedItem = nil
         selectedImage = nil
+        imageDescription = ""
         extractedKeywords = []
         generatedReview = ""
     }
